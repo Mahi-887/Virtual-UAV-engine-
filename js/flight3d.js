@@ -60,6 +60,9 @@ class Flight3DViewer {
       targetAltFt: 180
     };
 
+    this.takeoffCooldown = 0;
+    this.landingApproach = false;
+
     // Camera Mode
     this.cameraMode = 'chase'; // 'chase', 'cockpit', 'map'
 
@@ -452,8 +455,8 @@ class Flight3DViewer {
       const worldBlockX = (currentChunkX + b.gridOffsetX) * this.BLOCK_SIZE;
       const worldBlockZ = (currentChunkZ + b.gridOffsetZ) * this.BLOCK_SIZE;
 
-      // Keep Runway Corridor clear (X: -36 to +36, Z: -360 to +360)
-      const inRunwayCorridor = Math.abs(worldBlockX) < 40 && Math.abs(worldBlockZ) < 380;
+      // Keep Runway Corridor clear (X: -55 to +55, Z: -950 to +550)
+      const inRunwayCorridor = Math.abs(worldBlockX) < 55 && worldBlockZ > -950 && worldBlockZ < 550;
 
       if (inRunwayCorridor) {
         b.mesh.visible = false;
@@ -713,6 +716,10 @@ class Flight3DViewer {
       return;
     }
 
+    if (this.takeoffCooldown > 0) {
+      this.takeoffCooldown -= dt;
+    }
+
     // --- 1. DYNAMIC CELESTIAL ADVANCE ---
     if (this.autoTimeProgression) {
       this.timeOfDay = (this.timeOfDay + dt * 0.1) % 24;
@@ -720,11 +727,12 @@ class Flight3DViewer {
     }
 
     // --- 2. SMART AUTO-TAKEOFF CONTROLLER ---
-    // Triggered by 'T' key, Space (on ground), or UI Takeoff button
+    // Triggered by 'T' key, or UI Takeoff button
     const isTakeoffKey = inputKeys['t'] || inputKeys['T'] || inputKeys['takeoff'];
     if (isTakeoffKey && this.flightState.onGround && !this.autoTakeoff.active) {
       this.autoTakeoff.active = true;
       this.autoTakeoff.stage = 'spool';
+      this.takeoffCooldown = 8.0;
       if (!engineRunning && window.dashboard && window.dashboard.setEngineRunning) {
         window.dashboard.setEngineRunning(true);
       }
@@ -737,12 +745,14 @@ class Flight3DViewer {
     if (this.autoTakeoff.active) {
       window.physicsMLEngine.state.throttlePct = 100;
       if (this.flightState.onGround) {
-        if (this.flightState.airspeedKt > 36) {
+        if (this.flightState.airspeedKt > 35) {
           // Gentle rotate
-          this.flightState.pitchRad = Math.min(0.18, this.flightState.pitchRad + dt * 0.25);
-          if (this.flightState.pitchRad > 0.10) {
+          this.flightState.pitchRad = Math.min(0.18, this.flightState.pitchRad + dt * 0.35);
+          if (this.flightState.pitchRad > 0.08) {
             this.flightState.onGround = false;
             this.flightState.gearRetracted = true;
+            this.flightState.position.y = Math.max(1.5, this.flightState.position.y);
+            this.takeoffCooldown = 8.0;
             this.autoTakeoff.stage = 'climb';
             if (window.speechAlertEngine) {
               window.speechAlertEngine.speak("Rotate. UAV airborne, landing gear retracted.", false);
@@ -752,7 +762,7 @@ class Flight3DViewer {
       } else {
         // Airborne climb to target cruise altitude
         if (this.flightState.altitudeFt < this.autoTakeoff.targetAltFt) {
-          this.flightState.pitchRad = 0.12; // Steady climb
+          this.flightState.pitchRad = 0.14; // Steady positive climb
         } else {
           // Level off smoothly
           this.flightState.pitchRad = 0.02;
@@ -767,28 +777,31 @@ class Flight3DViewer {
 
     // --- 3. FLIGHT CONTROLS & FLY-BY-WIRE AUTO-STABILIZATION ---
     if (engineRunning) {
-      // Throttle Adjustment:
-      // Shift / PageUp = Throttle Up; Ctrl / PageDown = Throttle Down
-      if (inputKeys['Shift'] || inputKeys['PageUp']) {
-        window.physicsMLEngine.state.throttlePct = Math.min(100, window.physicsMLEngine.state.throttlePct + 45 * dt);
+      // Throttle Adjustment (Keyboard + On-screen buttons):
+      if (inputKeys['Shift'] || inputKeys['PageUp'] || inputKeys['btnThrUp'] || inputKeys['thrUp']) {
+        window.physicsMLEngine.state.throttlePct = Math.min(100, window.physicsMLEngine.state.throttlePct + 50 * dt);
       }
-      if (inputKeys['Control'] || inputKeys['PageDown']) {
-        window.physicsMLEngine.state.throttlePct = Math.max(0, window.physicsMLEngine.state.throttlePct - 45 * dt);
+      if (inputKeys['Control'] || inputKeys['PageDown'] || inputKeys['btnThrDn'] || inputKeys['thrDn']) {
+        window.physicsMLEngine.state.throttlePct = Math.max(0, window.physicsMLEngine.state.throttlePct - 50 * dt);
       }
 
-      // Pitch Controls:
-      // S or ArrowDown = Pitch Up (Climb)
-      // W or ArrowUp = Pitch Down (Dive)
+      // Pitch Controls (Up = Climb, Down = Dive):
       let pitchInput = 0;
-      if (inputKeys['s'] || inputKeys['S'] || inputKeys['ArrowDown'] || inputKeys['btnPitchDn']) pitchInput += 1;
-      if (inputKeys['w'] || inputKeys['W'] || inputKeys['ArrowUp'] || inputKeys['btnPitchUp']) pitchInput -= 1;
-
-      // Spacebar smooth altitude boost
-      if (inputKeys[' '] || inputKeys['Spacebar']) {
-        if (!this.flightState.onGround) pitchInput += 0.8;
+      if (inputKeys['w'] || inputKeys['W'] || inputKeys['ArrowUp'] || inputKeys['btnPitchUp'] || inputKeys[' '] || inputKeys['Spacebar']) {
+        pitchInput += 1.0; // Climb / Pitch Up
+      }
+      if (inputKeys['s'] || inputKeys['S'] || inputKeys['ArrowDown'] || inputKeys['btnPitchDn']) {
+        pitchInput -= 1.0; // Dive / Pitch Down
       }
 
-      if (pitchInput !== 0) {
+      // Assisted landing approach guidance
+      if (this.landingApproach && !this.flightState.onGround) {
+        if (this.flightState.position.y < 1.2) {
+          this.flightState.pitchRad = 0.02; // Auto-flare for butter landing
+        } else {
+          this.flightState.pitchRad = -0.04; // Gentle glide slope
+        }
+      } else if (pitchInput !== 0) {
         const pitchRate = 0.55;
         this.flightState.pitchRad += pitchInput * pitchRate * dt;
         this.flightState.pitchRad = Math.max(-0.45, Math.min(0.45, this.flightState.pitchRad));
@@ -797,12 +810,10 @@ class Flight3DViewer {
         this.flightState.pitchRad += (0.02 - this.flightState.pitchRad) * Math.min(1, dt * 3.5);
       }
 
-      // Roll / Bank Controls:
-      // A or ArrowLeft = Bank Left
-      // D or ArrowRight = Bank Right
+      // Roll / Bank Controls (A/D & D-Pad):
       let rollInput = 0;
-      if (inputKeys['d'] || inputKeys['D'] || inputKeys['ArrowRight'] || inputKeys['btnYawR']) rollInput += 1;
-      if (inputKeys['a'] || inputKeys['A'] || inputKeys['ArrowLeft'] || inputKeys['btnYawL']) rollInput -= 1;
+      if (inputKeys['d'] || inputKeys['D'] || inputKeys['ArrowRight'] || inputKeys['btnYawR']) rollInput += 1.0;
+      if (inputKeys['a'] || inputKeys['A'] || inputKeys['ArrowLeft'] || inputKeys['btnYawL']) rollInput -= 1.0;
 
       if (rollInput !== 0) {
         const targetBank = rollInput * 0.55;
@@ -822,9 +833,11 @@ class Flight3DViewer {
       // Landing Command (L)
       if ((inputKeys['l'] || inputKeys['L'] || inputKeys['land']) && !this.flightState.onGround) {
         this.autoTakeoff.active = false;
+        this.landingApproach = true;
+        this.takeoffCooldown = 0;
         this.flightState.gearRetracted = false;
         window.physicsMLEngine.state.throttlePct = 25;
-        this.flightState.pitchRad = -0.06;
+        this.flightState.pitchRad = -0.04;
         if (window.speechAlertEngine) {
           window.speechAlertEngine.speak("Initiating landing descent. Landing gear deployed.", true);
         }
@@ -837,33 +850,17 @@ class Flight3DViewer {
 
     // --- 4. AIRSPEED & AERODYNAMIC ACCELERATION ---
     const throttleRatio = throttlePct / 100;
-    const targetAirspeed = engineRunning ? (throttleRatio * 82) : 0;
+    const targetAirspeed = engineRunning ? (throttleRatio * 85) : 0;
     this.flightState.airspeedKt += (targetAirspeed - this.flightState.airspeedKt) * Math.min(1, dt * 1.6);
 
     // Manual Ground Rotation Takeoff
-    if (this.flightState.onGround && this.flightState.airspeedKt > 35 && this.flightState.pitchRad > 0.08) {
+    if (this.flightState.onGround && this.flightState.airspeedKt > 35 && this.flightState.pitchRad > 0.05) {
       this.flightState.onGround = false;
       this.flightState.gearRetracted = true;
+      this.flightState.position.y = Math.max(1.5, this.flightState.position.y);
+      this.takeoffCooldown = 8.0;
       if (window.speechAlertEngine) {
         window.speechAlertEngine.speak("Rotate. Airborne, gear retracted.", false);
-      }
-    }
-
-    // Touchdown Check
-    if (!this.flightState.onGround && this.flightState.position.y <= 0.46) {
-      if (this.flightState.airspeedKt < 48) {
-        // Safe Touchdown!
-        this.flightState.onGround = true;
-        this.flightState.gearRetracted = false;
-        this.flightState.position.y = 0.42;
-        this.flightState.pitchRad = 0;
-        this.flightState.bankRad = 0;
-        if (window.speechAlertEngine) {
-          window.speechAlertEngine.speak("Touchdown confirmed. Aircraft on runway.", true);
-        }
-      } else {
-        this.triggerCrash("CRASH ON TOUCHDOWN: Airspeed exceeded safe landing limit (>48 kt)!");
-        return;
       }
     }
 
@@ -883,13 +880,42 @@ class Flight3DViewer {
     if (!this.flightState.onGround) {
       // Aerodynamic lift vs weight balance
       const liftFactor = Math.pow(Math.max(0, this.flightState.airspeedKt / 35), 2);
-      const verticalClimb = Math.sin(this.flightState.pitchRad) * forwardSpeedUnits * 1.2;
-      const gravitySink = liftFactor >= 1.0 ? 0 : (1.0 - liftFactor) * -4.5;
+      const verticalClimb = Math.sin(this.flightState.pitchRad) * forwardSpeedUnits * 1.5;
+      const gravitySink = liftFactor >= 1.0 ? 0 : (1.0 - liftFactor) * -3.5;
 
       const totalVy = verticalClimb + gravitySink;
       this.flightState.position.y = Math.max(0.42, this.flightState.position.y + totalVy * dt);
       this.flightState.altitudeFt = Math.max(0, (this.flightState.position.y - 0.42) * 85);
       this.flightState.verticalSpeedFpm = totalVy * 60 * 3.28;
+
+      // Safe Touchdown / Flare Check (ONLY when descending and after takeoff established)
+      if (this.takeoffCooldown <= 0 && this.flightState.position.y <= 0.46 && totalVy <= 0) {
+        if (!this.flightState.gearRetracted && this.flightState.airspeedKt <= 75 && totalVy > -6.5) {
+          // Safe Touchdown!
+          this.flightState.onGround = true;
+          this.flightState.gearRetracted = false;
+          this.flightState.position.y = 0.42;
+          this.flightState.pitchRad = 0;
+          this.flightState.bankRad = 0;
+          this.flightState.verticalSpeedFpm = 0;
+          this.landingApproach = false;
+          if (window.speechAlertEngine) {
+            window.speechAlertEngine.speak("Touchdown confirmed. Aircraft safely on runway.", true);
+          }
+          if (window.dashboard) {
+            window.dashboard.showAlert("🛬 Touchdown confirmed! Aircraft safely rolled out on runway.", "info");
+          }
+        } else if (this.flightState.gearRetracted && this.flightState.position.y <= 0.43) {
+          this.triggerCrash("CRASH: Belly landing with gear retracted!");
+          return;
+        } else if (this.flightState.airspeedKt > 75) {
+          this.triggerCrash("CRASH ON TOUCHDOWN: Airspeed exceeded safe landing limit (>75 kt)!");
+          return;
+        } else if (totalVy <= -6.5) {
+          this.triggerCrash("HARD IMPACT: Excessive descent sink rate on touchdown!");
+          return;
+        }
+      }
     } else {
       this.flightState.position.y = 0.42;
       this.flightState.altitudeFt = 0;
@@ -934,7 +960,7 @@ class Flight3DViewer {
 
   // Check 3D Building Obstacle Proximity & Collision
   checkTerrainCollisions(fwdX, fwdZ) {
-    if (this.flightState.onGround) return;
+    if (this.flightState.onGround || (this.takeoffCooldown && this.takeoffCooldown > 3.0)) return;
 
     const dronePos = this.flightState.position;
     let collisionRiskAhead = false;
@@ -1079,6 +1105,8 @@ class Flight3DViewer {
     this.flightState.isCrashed = false;
     this.flightState.terrainWarningActive = false;
     this.autoTakeoff.active = false;
+    this.takeoffCooldown = 0;
+    this.landingApproach = false;
 
     if (this.droneGroup) {
       this.droneGroup.position.set(0, 0.42, 0);

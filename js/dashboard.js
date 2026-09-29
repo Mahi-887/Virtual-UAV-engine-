@@ -127,9 +127,6 @@ class DashboardController {
     // 1. Keyboard Controls
     window.addEventListener('keydown', (e) => {
       this.keys[e.key] = true;
-      if (e.key === ' ' || e.key === 'Spacebar') {
-        this.keys['takeoff'] = true;
-      }
       if (e.key === 't' || e.key === 'T') {
         this.keys['takeoff'] = true;
       }
@@ -151,9 +148,6 @@ class DashboardController {
 
     window.addEventListener('keyup', (e) => {
       this.keys[e.key] = false;
-      if (e.key === ' ' || e.key === 'Spacebar') {
-        this.keys['takeoff'] = false;
-      }
       if (e.key === 't' || e.key === 'T') {
         this.keys['takeoff'] = false;
       }
@@ -174,12 +168,12 @@ class DashboardController {
       el.addEventListener('pointercancel', release);
     };
 
-    bindPad('btnThrUp', 'ArrowUp');
-    bindPad('btnThrDn', 'ArrowDown');
-    bindPad('btnPitchUp', 'w');
-    bindPad('btnPitchDn', 's');
-    bindPad('btnYawL', 'a');
-    bindPad('btnYawR', 'd');
+    bindPad('btnThrUp', 'btnThrUp');
+    bindPad('btnThrDn', 'btnThrDn');
+    bindPad('btnPitchUp', 'btnPitchUp');
+    bindPad('btnPitchDn', 'btnPitchDn');
+    bindPad('btnYawL', 'btnYawL');
+    bindPad('btnYawR', 'btnYawR');
 
     // Takeoff Button (UI Button or 'T' key)
     if (this.btnTakeoff) {
@@ -191,18 +185,18 @@ class DashboardController {
           if (!window.physicsMLEngine.state.engineRunning) {
             this.setEngineRunning(true);
           }
-          window.physicsMLEngine.state.throttlePct = 95;
-          this.flightViewer.flightState.airspeedKt = Math.max(45, this.flightViewer.flightState.airspeedKt);
+          window.physicsMLEngine.state.throttlePct = 100;
+          this.flightViewer.flightState.airspeedKt = Math.max(52, this.flightViewer.flightState.airspeedKt);
           this.flightViewer.flightState.onGround = false;
           this.flightViewer.flightState.gearRetracted = true;
           this.flightViewer.flightState.pitchRad = 0.16;
-          this.flightViewer.takeoffCooldown = 4.0;
-          this.flightViewer.flightState.position.y = Math.max(2.5, this.flightViewer.flightState.position.y);
+          this.flightViewer.takeoffCooldown = 8.0;
+          this.flightViewer.flightState.position.y = Math.max(3.5, this.flightViewer.flightState.position.y);
           if (window.speechAlertEngine) {
             window.speechAlertEngine.speak("Takeoff initiated. Throttle spooled to maximum. Airborne, gear retracted.", true);
           }
-          this.logFlightEvent("Takeoff initiated. Airspeed 45 KT, climb attitude established.", 'info');
-          this.showAlert("🛫 TAKEOFF INITIATED: UAV airborne! Use A/D to steer, W/S for climb & throttle.", "info");
+          this.logFlightEvent("Takeoff initiated. Airspeed 52 KT, climb attitude established.", 'info');
+          this.showAlert("🛫 TAKEOFF INITIATED: UAV airborne! Use W/S or D-Pad for climb & dive, A/D to steer.", "info");
         }
       });
     }
@@ -222,15 +216,16 @@ class DashboardController {
     if (btnLand) {
       btnLand.addEventListener('click', () => {
         if (this.flightViewer && !this.flightViewer.flightState.onGround) {
-          window.physicsMLEngine.state.throttlePct = 20;
+          window.physicsMLEngine.state.throttlePct = 25;
           this.flightViewer.flightState.gearRetracted = false;
-          this.flightViewer.flightState.pitchRad = -0.06;
+          this.flightViewer.flightState.pitchRad = -0.04;
           this.flightViewer.landingApproach = true;
+          this.flightViewer.takeoffCooldown = 0;
           if (window.speechAlertEngine) {
             window.speechAlertEngine.speak("Initiating landing approach. Landing gear deployed.", true);
           }
           this.logFlightEvent("Landing approach initiated. Gear deployed.", 'warn');
-          this.showAlert("🛬 Landing approach active. Aligning with runway.", "warn");
+          this.showAlert("🛬 Landing approach active. Aligning glide slope with runway.", "warn");
         }
       });
     }
