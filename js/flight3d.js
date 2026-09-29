@@ -24,6 +24,7 @@ class Flight3DViewer {
     // Flight Camera setup
     const aspect = (this.container.clientWidth || 800) / (this.container.clientHeight || 500);
     this.camera = new THREE.PerspectiveCamera(55, aspect, 0.2, 3500);
+    this.camera.position.set(0, 4.2, 9.5);
 
     // Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -33,30 +34,7 @@ class Flight3DViewer {
     this.renderer.toneMappingExposure = 1.15;
     this.container.appendChild(this.renderer.domElement);
 
-    // Onboard EO/IR Gimbal Cam setup
-    this.setupGimbalCamera();
-
-    // Dynamic Celestial Environment (Sun, Moon, Stars, Day/Night)
-    this.timeOfDay = 12.0; // 12:00 noon default
-    this.autoTimeProgression = false;
-    this.setupCelestialAtmosphere();
-
-    // Infinite Procedural Metropolis World
-    this.buildingColliders = [];
-    this.activeChunkX = 0;
-    this.activeChunkZ = 0;
-    this.BLOCK_SIZE = 75; // 75 meters per city block
-    this.buildInfiniteMetropolisWorld();
-
-    // High-Fidelity UAV Drone Model
-    this.droneGroup = new THREE.Group();
-    this.scene.add(this.droneGroup);
-    this.buildDroneModel();
-
-    // Threat Jets / Drones & Missiles
-    this.setupThreatSystem();
-
-    // Physical Flight State (Real World Coordinates)
+    // Physical Flight State (Real World Coordinates) - Initialized BEFORE subsystems
     this.flightState = {
       position: new THREE.Vector3(0, 0.42, 0), // Starts on runway centerline
       velocity: new THREE.Vector3(0, 0, 0),
@@ -84,6 +62,32 @@ class Flight3DViewer {
 
     // Camera Mode
     this.cameraMode = 'chase'; // 'chase', 'cockpit', 'map'
+
+    // High-Fidelity UAV Drone Model
+    this.droneGroup = new THREE.Group();
+    this.droneGroup.position.copy(this.flightState.position);
+    this.scene.add(this.droneGroup);
+    this.buildDroneModel();
+
+    this.camera.lookAt(this.droneGroup.position.clone().add(new THREE.Vector3(0, 0.45, 0)));
+
+    // Onboard EO/IR Gimbal Cam setup
+    this.setupGimbalCamera();
+
+    // Dynamic Celestial Environment (Sun, Moon, Stars, Day/Night)
+    this.timeOfDay = 12.0; // 12:00 noon default
+    this.autoTimeProgression = false;
+    this.setupCelestialAtmosphere();
+
+    // Infinite Procedural Metropolis World
+    this.buildingColliders = [];
+    this.activeChunkX = 0;
+    this.activeChunkZ = 0;
+    this.BLOCK_SIZE = 75; // 75 meters per city block
+    this.buildInfiniteMetropolisWorld();
+
+    // Threat Jets / Drones & Missiles
+    this.setupThreatSystem();
 
     // Window Resizing
     window.addEventListener('resize', () => this.onResize());
@@ -423,7 +427,7 @@ class Flight3DViewer {
 
   // Continuously Stream and Wrap Metropolis Blocks Ahead of the Drone
   updateInfiniteMetropolis(force = false) {
-    const dronePos = this.flightState.position;
+    const dronePos = (this.flightState && this.flightState.position) ? this.flightState.position : new THREE.Vector3(0, 0.42, 0);
     const currentChunkX = Math.floor(dronePos.x / this.BLOCK_SIZE);
     const currentChunkZ = Math.floor(dronePos.z / this.BLOCK_SIZE);
 
