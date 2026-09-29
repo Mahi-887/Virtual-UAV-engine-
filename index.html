@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>UAV IC Engine Digital Twin & AI/ML PHM System | SIH Aerospace Demonstrator</title>
+  
+  <!-- Modern Aerospace Monospace & Sans Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-container">
+    
+    <!-- Top Tactical Aerospace Navbar -->
+    <header class="app-header">
+      <div class="brand-section">
+        <span class="brand-badge">SIH PROPULSION PHM</span>
+        <div class="app-title">
+          UAV IC Engine Digital Twin
+          <span class="sub">| Physics-Informed Edge AI & Predictive Analytics</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="overview">
+          <span class="dot"></span> 🚁 Overview &amp; Flight
+        </button>
+        <button class="tab-btn" data-tab="flight-game">
+          <span class="dot"></span> 🎮 Drone Simulator (Full Game)
+        </button>
+        <button class="tab-btn" data-tab="engine-inspector">
+          <span class="dot"></span> 🏎️ 3D Engine Cutaway
+        </button>
+        <button class="tab-btn" data-tab="ai-diagnostics">
+          <span class="dot"></span> 🧠 AI/ML &amp; PINN Analytics
+        </button>
+        <button class="tab-btn" data-tab="replay">
+          <span class="dot"></span> 📼 Mission Replay &amp; Black Box
+        </button>
+        <button class="tab-btn" data-tab="reports">
+          <span class="dot"></span> 📋 Maintenance &amp; Work Orders
+        </button>
+      </nav>
+
+      <!-- Header Telemetry Status Indicators -->
+      <div class="header-telemetry">
+        <div class="telemetry-chip">
+          <span class="pulse-indicator" id="headerPulse"></span>
+          <span>CAN BUS: 500 KBPS</span>
+        </div>
+        <div class="telemetry-chip">
+          <span>HEALTH:</span>
+          <span id="healthBadge" class="badge ok">NOMINAL</span>
+        </div>
+        <button class="audio-mute-btn" id="btnAudioToggle" title="Toggle Engine Audio Sound">🔊 Sound ON</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main id="workspace">
+
+      <!-- ====================================================================
+           TAB 1: DUAL VIEWPORT (FLIGHT SIMULATOR + 3D ENGINE CUTAWAY)
+           ==================================================================== -->
+      <section class="tab-content active" id="tab-overview">
+        <div class="viewports-container">
+          
+          <!-- LEFT VIEWPORT: 3D UAV Flight Simulator over NYC -->
+          <div class="viewport-panel" id="flightViewport">
+            <div class="viewport-header">
+              <span class="viewport-title" style="font-size:12px; font-weight:800;">Flight Dynamics View</span>
+              <span class="viewport-badge" id="cameraLabel">CHASE CAM</span>
+              <button class="btn-action primary" id="btnFlightEngineToggle" style="padding:6px 14px; font-size:12px; height:32px; border-radius:5px; font-weight:800; margin-left:8px; letter-spacing:0.5px;">START ENGINE</button>
+              <button class="btn-action" id="btnFlightReset" style="padding:6px 12px; font-size:12px; height:32px; border-radius:5px; margin-left:6px; font-weight:700;">🔄 RESET (R)</button>
+              <button class="btn-action" id="btnFlightMuteAlarm" style="padding:6px 12px; font-size:12px; height:32px; border-radius:5px; margin-left:6px; font-weight:700;">🔔 MUTE (M)</button>
+              <div class="taws-warning-banner" id="tawsBanner">⚠️ TERRAIN PULL UP! PULL UP!</div>
+              <button class="btn-action primary" id="btnToggleFlightMode" style="padding:6px 14px; font-size:12px; height:32px; border-radius:5px; margin-left:auto; font-weight:700;">⛶ FULLSCREEN GAME</button>
+            </div>
+
+            <!-- DRDO INDRA-PROGNOSTICS™ Tactical Early Warning HUD Widget -->
+            <div class="drdo-prognostics-hud" id="drdoPrognosticsHud">
+              <div class="prognostic-header" id="prognosticHeader">
+                <div class="prognostic-title">
+                  <span>🔮 DRDO PROGNOSTICS</span>
+                  <span class="prognostic-badge" id="hudProgBadge">NOMINAL</span>
+                </div>
+                <span style="font-size:10px; color:var(--text-muted); cursor:pointer;" id="btnToggleProgPanel">▼</span>
+              </div>
+              <div class="prognostic-body" id="prognosticBody">
+                <div class="prognostic-card">
+                  <div class="prognostic-row">
+                    <span class="label">PREDICTED EVENT</span>
+                    <span class="value" id="hudProgHazard" style="font-size:10px; color:#38bdf8;">None (Safe Envelope)</span>
+                  </div>
+                  <div class="prognostic-row">
+                    <span class="label">TIME-TO-FAILURE</span>
+                    <span class="prognostic-countdown" id="hudProgCountdown">--</span>
+                  </div>
+                  <div class="prognostic-row">
+                    <span class="label">CONFIDENCE &amp; SUBSYS</span>
+                    <span class="value" id="hudProgConfidence" style="font-size:10px;">99.4% &middot; Nominal</span>
+                  </div>
+                  <div class="prognostic-action-pill" id="hudProgAction">
+                    &bull; Action: Maintain flight envelope &amp; monitor CAN telemetry
+                  </div>
+                </div>
+
+                <!-- 12-Sensor High-Fidelity Health Matrix -->
+                <div style="font-size:9px; color:var(--text-muted); margin-top:7px; font-weight:700; letter-spacing:0.5px;">
+                  12-SENSOR EKF HEALTH MATRIX:
+                </div>
+                <div class="sensor-matrix-grid">
+                  <div class="sensor-cell"><div class="sensor-cell-name">CHT 1</div><div class="sensor-cell-stat" id="sc_cht1">92°C</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">CHT 2</div><div class="sensor-cell-stat" id="sc_cht2">95°C</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">CHT 3</div><div class="sensor-cell-stat" id="sc_cht3">93°C</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">CHT 4</div><div class="sensor-cell-stat" id="sc_cht4">91°C</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">EGT</div><div class="sensor-cell-stat" id="sc_egt">620°C</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">MAP</div><div class="sensor-cell-stat" id="sc_map">101k</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">OIL PSI</div><div class="sensor-cell-stat" id="sc_oil_p">45p</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">OIL °C</div><div class="sensor-cell-stat" id="sc_oil_t">82°C</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">FLOW</div><div class="sensor-cell-stat" id="sc_flow">12L</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">BUS 28V</div><div class="sensor-cell-stat" id="sc_bus">28.2</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">PITOT</div><div class="sensor-cell-stat" id="sc_pitot">0kt</div></div>
+                  <div class="sensor-cell"><div class="sensor-cell-name">IMU G</div><div class="sensor-cell-stat" id="sc_imu">0.25</div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sleek Bottom Tactical Alert Banner (Non-Obstructive Ticker) -->
+            <div id="centerAlertModal" class="center-alert-modal">
+              <div class="alert-pulse-symbol">⚠️</div>
+              <div class="alert-text-block">
+                <h2 id="centerAlertTitle">CRITICAL WARNING</h2>
+                <p id="centerAlertDesc">Hazard predicted.</p>
+              </div>
+              <button id="btnDismissCenterAlert" class="btn-dismiss-alert">🔕 MUTE / DISMISS (M)</button>
+            </div>
+
+            <!-- Keyboard & Controls Hint Overlay -->
+            <div class="keyboard-hint" style="font-size:11px; line-height:1.5;">
+              <kbd>W</kbd>/<kbd>S</kbd> Pitch &middot; <kbd>A</kbd>/<kbd>D</kbd> Bank &middot; <kbd>Shift</kbd>/<kbd>Ctrl</kbd> Throttle &middot; <kbd>Space</kbd> Boost<br>
+              <kbd>T</kbd> Takeoff &middot; <kbd>L</kbd> Land &middot; <kbd>R</kbd> Reset &middot; <kbd>M</kbd> Mute
+            </div>
+
+            <!-- Onboard Gimbal Optical Turret PiP Feed -->
+            <div id="camFeedPip">
+              <div class="pip-rec">&bull; LIVE EO/IR</div>
+              <div class="pip-reticle"></div>
+            </div>
+
+            <!-- Tactile On-Screen Flight Controller Buttons -->
+            <div id="flight-touch-controls">
+              <!-- Left Cluster: Throttle, Takeoff, Land & Refuel -->
+              <div class="pad-cluster">
+                <div style="display:flex; gap:6px;">
+                  <div class="ctrl-btn wide takeoff" id="btnTakeoff">🛫 TAKEOFF</div>
+                  <div class="ctrl-btn wide land" id="btnLand">🛬 LAND</div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <div class="ctrl-btn" id="btnThrUp" title="Throttle Up">&uarr; Thr</div>
+                  <div class="ctrl-btn" id="btnThrDn" title="Throttle Down">&darr; Thr</div>
+                </div>
+                <div class="ctrl-btn wide refuel" id="btnRefuel" style="margin-top:4px;">⛽ REFUEL</div>
+              </div>
+
+              <!-- Right Cluster: Flight Yoke D-Pad (Pitch & Roll) -->
+              <div class="pad-cluster dpad">
+                <div></div>
+                <div class="ctrl-btn" id="btnPitchUp" style="grid-column:2; grid-row:1;" title="Pitch Up">⬆</div>
+                <div></div>
+                <div class="ctrl-btn" id="btnYawL" style="grid-column:1; grid-row:2;" title="Turn Left (A)">⬅</div>
+                <div></div>
+                <div class="ctrl-btn" id="btnYawR" style="grid-column:3; grid-row:2;" title="Turn Right (D)">➡</div>
+                <div></div>
+                <div class="ctrl-btn" id="btnPitchDn" style="grid-column:2; grid-row:3;" title="Pitch Down">⬇</div>
+                <div></div>
+              </div>
+            </div>
+
+            <!-- Real-Time Flight HUD Telemetry Ribbon -->
+            <div class="flight-hud">
+              <div class="hud-tape-box">
+                <div class="hud-metric">
+                  <span class="label">MISSION STATE</span>
+                  <span class="val accent" id="hudStatus">ON RUNWAY</span>
+                </div>
+                <div class="hud-metric">
+                  <span class="label">ALTITUDE</span>
+                  <span class="val"><span id="hudAlt">0</span> FT</span>
+                </div>
+                <div class="hud-metric">
+                  <span class="label">AIRSPEED</span>
+                  <span class="val"><span id="hudSpd">0</span> KT</span>
+                </div>
+                <div class="hud-metric">
+                  <span class="label">HEADING</span>
+                  <span class="val"><span id="hudHdg">000</span>&deg;</span>
+                </div>
+                <div class="hud-metric">
+                  <span class="label">THROTTLE</span>
+                  <span class="val accent"><span id="hudThr">0</span>%</span>
+                </div>
+                <div class="hud-metric">
+                  <span class="label">FUEL TANK</span>
+                  <span class="val" id="hudFuel">45 L</span>
+                </div>
+                <div class="hud-metric">
+                  <span class="label">ENGINE RPM</span>
+                  <span class="val accent" id="hudRpm">0</span>
+                </div>
+                
+                <!-- Bottom Screen Sensors -->
+                <div class="game-bottom-sensors">
+                  <div class="game-sensor-pill" id="gPillRpm"><span class="st-dot"></span> RPM</div>
+                  <div class="game-sensor-pill" id="gPillCht"><span class="st-dot"></span> CHT</div>
+                  <div class="game-sensor-pill" id="gPillOil"><span class="st-dot"></span> OIL</div>
+                  <div class="game-sensor-pill" id="gPillVib"><span class="st-dot"></span> VIB</div>
+                  <div class="game-sensor-pill" id="gPillFuel"><span class="st-dot"></span> FUEL</div>
+                  <div class="game-sensor-pill" id="gPillTaws"><span class="st-dot"></span> TAWS</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT VIEWPORT: 3D Detailed IC Engine Cutaway -->
+          <div class="viewport-panel" id="engineViewport">
+            <div class="viewport-header">
+              <span class="viewport-title">Propulsion Digital Twin</span>
+              <span class="viewport-badge">4-CYL DOHC CUTAWAY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR: Telemetry, AI Health, Controls & Sensors -->
+        <aside id="side-panel">
+          
+          <!-- Dynamic Alert & Predictive Hazard Banners -->
+          <div id="alertBanner" class="alert-banner danger" style="display:none;"></div>
+          <div id="hazardBanner" class="alert-banner warn" style="display:none;"></div>
+
+          <!-- Mission & Flight Controls Card -->
+          <div class="telemetry-card">
+            <div class="card-title">
+              Mission Control Rig
+              <span class="badge" style="background:rgba(0,240,255,0.15); color:var(--accent-cyan);">CAN 2.0B</span>
+            </div>
+
+            <div class="actions-grid">
+              <button class="btn-action primary" id="engineToggle">START ENGINE</button>
+              <button class="btn-action danger" id="btnFaultMisfire">INJECT MISFIRE</button>
+            </div>
+
+            <div class="actions-grid" style="margin-top:4px;">
+              <button class="btn-action danger" id="btnFaultOverpressure">OVERPRESSURE BOOST</button>
+              <button class="btn-action danger" id="btnFaultOil">OIL LEAK</button>
+            </div>
+
+            <button class="btn-action" id="btnFaultClear" style="margin-top:4px; width:100%;">
+              &check; CLEAR ALL SIMULATED FAULTS
+            </button>
+
+            <!-- Weather Simulation Slider -->
+            <div class="control-slider-group" style="margin-top:6px;">
+              <div class="slider-labels">
+                <span>Ambient Environment</span>
+                <span id="weatherLabel" style="color:var(--accent-cyan); font-weight:600;">Normal (22&deg;C)</span>
+              </div>
+              <input type="range" class="custom-slider" id="sliderWeather" min="0" max="2" value="0" step="1">
+            </div>
+
+            <!-- Time of Day Slider & Celestial Controls -->
+            <div class="control-slider-group" style="margin-top:4px;">
+              <div class="slider-labels">
+                <span>Celestial Time (Sun/Moon)</span>
+                <span id="timeLabel" style="color:var(--accent-cyan); font-weight:600;">12:00</span>
+              </div>
+              <input type="range" class="custom-slider" id="sliderTimeOfDay" min="0" max="24" value="12" step="0.5">
+              <div class="celestial-bar">
+                <button class="celestial-btn active" id="btnTimeDay">☀️ DAY</button>
+                <button class="celestial-btn" id="btnTimeSunset">🌅 SUNSET</button>
+                <button class="celestial-btn" id="btnTimeNight">🌙 NIGHT</button>
+                <button class="celestial-btn" id="btnTimeAuto">⏱️ AUTO</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Camera Selection Card -->
+          <div class="telemetry-card">
+            <div class="card-title">Camera Perspective</div>
+            <div class="actions-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+              <button class="btn-action primary" id="camBtn_chase">Chase</button>
+              <button class="btn-action" id="camBtn_cockpit">Cockpit</button>
+              <button class="btn-action" id="camBtn_map">Map</button>
+            </div>
+          </div>
+
+          <!-- Physical Propulsion Telemetry Card -->
+          <div class="telemetry-card">
+            <div class="card-title">Physical Engine Telemetry</div>
+            <div class="data-row"><span class="k">Rotational Speed (RPM)</span><span class="v" id="sideRpm">0</span></div>
+            <div class="data-row"><span class="k">In-Cylinder Peak Pressure</span><span class="v" id="sidePressure">1.0 bar</span></div>
+            <div class="data-row"><span class="k">Cylinder Head Temp (CHT)</span><span class="v" id="sideCht">25&deg;C</span></div>
+            <div class="data-row"><span class="k">Exhaust Gas Temp (EGT)</span><span class="v" id="sideEgt">25&deg;C</span></div>
+            <div class="data-row"><span class="k">Oil Pressure (Lubrication)</span><span class="v" id="sideOil">0 psi</span></div>
+            <div class="data-row"><span class="k">Fuel Consumption Rate</span><span class="v" id="sideFuel">0.0 L/h</span></div>
+            <div class="data-row"><span class="k">3-Axis Vibration (RMS)</span><span class="v" id="sideVib">0.10 g</span></div>
+            <div class="data-row"><span class="k">28V Bus Electrical Potential</span><span class="v" id="sideBattery">25.0 V</span></div>
+            <div class="data-row"><span class="k">Alternator Generator Load</span><span class="v" id="sideAltCurrent">0.0 A</span></div>
+          </div>
+
+          <!-- Digital Twin AI Health & RUL Card -->
+          <div class="telemetry-card">
+            <div class="card-title">
+              Physics-Informed AI Health Layer
+              <span class="badge" style="background:rgba(0,255,136,0.15); color:var(--accent-neon-green);">PINN RESIDUAL</span>
+            </div>
+
+            <!-- Anomaly Score Gauge -->
+            <div class="gauge-container">
+              <div class="gauge-header">
+                <span class="label">Multi-Variate Anomaly Score</span>
+                <span class="num" id="anomScoreVal">0.02</span>
+              </div>
+              <div class="gauge-track">
+                <div class="gauge-fill cyan" id="anomBar" style="width:2%;"></div>
+              </div>
+            </div>
+
+            <!-- Remaining Useful Life (RUL) Gauge -->
+            <div class="gauge-container" style="margin-top:6px;">
+              <div class="gauge-header">
+                <span class="label">Remaining Useful Life (RUL)</span>
+                <span class="num" id="rulVal">100% (1500h)</span>
+              </div>
+              <div class="gauge-track">
+                <div class="gauge-fill green" id="rulBar" style="width:100%;"></div>
+              </div>
+            </div>
+
+            <!-- Fuel Tank Level Gauge -->
+            <div class="gauge-container" style="margin-top:6px;">
+              <div class="gauge-header">
+                <span class="label">Usable Fuel Capacity</span>
+                <span class="num" id="fuelLevelVal">100%</span>
+              </div>
+              <div class="gauge-track">
+                <div class="gauge-fill green" id="fuelBar" style="width:100%;"></div>
+              </div>
+            </div>
+
+            <!-- Airframe Structural Integrity (Combat threat damage) -->
+            <div class="gauge-container" style="margin-top:6px;">
+              <div class="gauge-header">
+                <span class="label">Airframe Structural Integrity</span>
+                <span class="num" id="airframeVal">100%</span>
+              </div>
+              <div class="gauge-track">
+                <div class="gauge-fill green" id="airframeBar" style="width:100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Redundant CAN Sensor Node Grid -->
+          <div class="telemetry-card">
+            <div class="card-title">CAN Sensor Health & Fusion</div>
+            <div class="sensor-chips-grid">
+              <div class="sensor-chip"><span class="s-name">RPM Hall Sensor</span><span class="s-status ok" id="sRpm">OK</span></div>
+              <div class="sensor-chip"><span class="s-name">CHT Thermocouple</span><span class="s-status ok" id="sCht">OK</span></div>
+              <div class="sensor-chip"><span class="s-name">Oil Transducer</span><span class="s-status ok" id="sOil">OK</span></div>
+              <div class="sensor-chip"><span class="s-name">Piezo Vibration</span><span class="s-status ok" id="sVib">OK</span></div>
+              <div class="sensor-chip"><span class="s-name">Fuel Level Float</span><span class="s-status ok" id="sFuel">OK</span></div>
+              <div class="sensor-chip"><span class="s-name">Airframe Proximity</span><span class="s-status ok" id="sAirframe">OK</span></div>
+            </div>
+          </div>
+
+        </aside>
+      </section>
+
+      <!-- ====================================================================
+           TAB 2: FULL-SCREEN 3D ENGINE INSPECTOR VIEW
+           ==================================================================== -->
+      <section class="tab-content full-tab-view" id="tab-engine-inspector">
+        <div class="inspector-viewport" id="inspectorViewport">
+          <div class="viewport-header">
+            <span class="viewport-title">Kinematic Digital Twin Inspector</span>
+            <span class="viewport-badge">DOHC &bull; POINTER ROTATE &bull; PINN HEATMAP</span>
+          </div>
+        </div>
+
+        <div class="inspector-sidebar">
+          <div class="telemetry-card">
+            <div class="card-title">Crankshaft & Valvetrain Kinematics</div>
+            <p style="font-size:12px; color:var(--text-secondary); line-height:1.4;">
+              Interactive cutaway exposes the internal 4-stroke thermodynamic cycle:
+              Piston reciprocating velocity, connecting rod obliquity angles, and cam lobe lifts are calculated in real-time synchronized to the crankshaft angle &theta;.
+            </p>
+          </div>
+
+          <!-- Live Flight Sync Strip -->
+          <div class="telemetry-card" style="border-color:rgba(0,240,255,0.25);">
+            <div class="card-title" style="color:var(--accent-cyan);">🚁 In-Flight Propulsion Synchronization</div>
+            <div class="data-row"><span class="k">Drone Mission Status</span><span class="v accent" id="inspFlightStatus">ON RUNWAY</span></div>
+            <div class="data-row"><span class="k">Flight Envelope (Alt / Spd)</span><span class="v" id="inspFlightEnvelope">0 FT / 0 KT</span></div>
+            <div class="data-row"><span class="k">Propulsion Load / Throttle</span><span class="v" id="inspThrottle">0%</span></div>
+          </div>
+
+          <div class="telemetry-card">
+            <div class="card-title">Real-Time Combustion Physics</div>
+            <div class="data-row"><span class="k">Rotational Speed (RPM)</span><span class="v accent" id="inspRpm">0 RPM</span></div>
+            <div class="data-row"><span class="k">Peak Cylinder Pressure</span><span class="v" id="inspPressure">1.0 bar</span></div>
+            <div class="data-row"><span class="k">Dynamic Spark Timing</span><span class="v" id="inspSpark">22.0&deg; BTDC</span></div>
+            <div class="data-row"><span class="k">Combustion Ratio (&lambda;)</span><span class="v" id="inspAfr">14.7 (1.00)</span></div>
+            <div class="data-row"><span class="k">Mean Piston Velocity (v_m)</span><span class="v" id="inspPistonSpeed">0.0 m/s</span></div>
+            <div class="data-row"><span class="k">Engine 3-Axis Vibration</span><span class="v" id="inspVib">0.08 g</span></div>
+            <div class="data-row"><span class="k">Heat Rejection Power</span><span class="v" id="inspHeatRejection">0.0 kW</span></div>
+          </div>
+
+          <div class="telemetry-card">
+            <div class="card-title">Individual Cylinder Thermals</div>
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; font-family:var(--font-mono); font-size:10px; text-align:center;">
+              <div style="background:rgba(255,255,255,0.03); padding:6px 2px; border-radius:4px; border:1px solid var(--border-subtle);">
+                <span style="color:var(--text-muted); display:block;">CYL #1</span>
+                <span id="inspCyl1Cht" style="color:var(--accent-cyan); font-weight:700;">25°C</span>
+              </div>
+              <div style="background:rgba(255,255,255,0.03); padding:6px 2px; border-radius:4px; border:1px solid var(--border-subtle);">
+                <span style="color:var(--text-muted); display:block;">CYL #2</span>
+                <span id="inspCyl2Cht" style="color:var(--accent-cyan); font-weight:700;">25°C</span>
+              </div>
+              <div style="background:rgba(255,255,255,0.03); padding:6px 2px; border-radius:4px; border:1px solid var(--border-subtle);">
+                <span style="color:var(--text-muted); display:block;">CYL #3</span>
+                <span id="inspCyl3Cht" style="color:var(--accent-cyan); font-weight:700;">25°C</span>
+              </div>
+              <div style="background:rgba(255,255,255,0.03); padding:6px 2px; border-radius:4px; border:1px solid var(--border-subtle);">
+                <span style="color:var(--text-muted); display:block;">CYL #4</span>
+                <span id="inspCyl4Cht" style="color:var(--accent-cyan); font-weight:700;">25°C</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           TAB 3: AI / ML & PINN DIAGNOSTICS ANALYTICS
+           ==================================================================== -->
+      <section class="tab-content full-tab-view" id="tab-ai-diagnostics">
+        
+        <!-- Real-Time Drone Flight Synchronization Strip -->
+        <div style="background:rgba(0,240,255,0.06); border:1px solid rgba(0,240,255,0.2); border-radius:6px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; font-family:var(--font-mono); font-size:12px; margin-bottom:12px;">
+          <div>
+            <span style="color:var(--text-muted);">ACTIVE UAV PROPULSION SYNC:</span>
+            <span id="aiDroneState" style="color:var(--accent-cyan); font-weight:700; margin-left:8px;">ON RUNWAY</span>
+          </div>
+          <div>
+            <span>ALTITUDE: <strong id="aiDroneAlt" style="color:#fff;">0 FT</strong></span>
+            <span style="margin: 0 10px; color:var(--text-muted);">&bull;</span>
+            <span>AIRSPEED: <strong id="aiDroneSpd" style="color:#fff;">0 KT</strong></span>
+            <span style="margin: 0 10px; color:var(--text-muted);">&bull;</span>
+            <span>THROTTLE: <strong id="aiDroneThr" style="color:var(--accent-cyan);">0%</strong></span>
+            <span style="margin: 0 10px; color:var(--text-muted);">&bull;</span>
+            <span>HEALTH: <strong id="aiDroneHealth" style="color:var(--accent-neon-green);">NOMINAL</strong></span>
+          </div>
+        </div>
+
+        <!-- KPI Cards Row -->
+        <div class="analytics-cards-row">
+          <div class="kpi-card">
+            <span class="kpi-title">PINN Residual Loss</span>
+            <span class="kpi-val" id="kpiPinnLoss">0.014</span>
+            <span class="kpi-sub">Thermodynamic energy conservation residual</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-title">Peak In-Cylinder Stress</span>
+            <span class="kpi-val" id="kpiPressure">72.4 bar</span>
+            <span class="kpi-sub">Max safe limit: 90.0 bar</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-title">Degradation Rate</span>
+            <span class="kpi-val" id="kpiDegradation">0.02%/hr</span>
+            <span class="kpi-sub">Multi-axial thermal & vibration stress</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-title">Sensor Drift Confidence</span>
+            <span class="kpi-val" id="kpiDrift">99.4%</span>
+            <span class="kpi-sub">Extended Kalman Filter (EKF) isolation</span>
+          </div>
+        </div>
+
+        <!-- Real-Time Telemetry & FFT Frequency Charts Grid -->
+        <div class="analytics-charts-grid">
+          
+          <div class="chart-panel">
+            <div class="card-title">
+              In-Cylinder Peak Pressure vs Manifold Pressure (MAP)
+              <span class="badge" style="color:var(--accent-cyan);">CYL: CYAN &bull; MAP: YELLOW</span>
+            </div>
+            <canvas id="canvasPressure"></canvas>
+          </div>
+
+          <div class="chart-panel">
+            <div class="card-title">
+              Vibration FFT Spectrum (0 - 200 Hz)
+              <span class="badge" style="color:var(--accent-neon-green);">1X &bull; 2X &bull; 4X HARMONICS</span>
+            </div>
+            <canvas id="canvasVibrationFft"></canvas>
+          </div>
+
+        </div>
+
+        <!-- Second Row: Anomaly Score Trend & Explainable AI (XAI) -->
+        <div class="analytics-charts-grid" style="min-height:280px;">
+          
+          <div class="chart-panel">
+            <div class="card-title">
+              Predictive Anomaly Score &amp; Remaining Useful Life (RUL) Trajectory
+              <span class="badge" style="color:var(--accent-danger);">ANOMALY: RED &bull; RUL: GREEN</span>
+            </div>
+            <canvas id="canvasAnomaly"></canvas>
+          </div>
+
+          <div class="chart-panel">
+            <div class="card-title">
+              Explainable AI (XAI) Attribution Breakdown
+              <span class="badge">SHAP-STYLE</span>
+            </div>
+            
+            <div class="xai-bar-group">
+              <div class="xai-item">
+                <div class="xai-labels"><span>Cylinder Peak Pressure Overload</span><span id="xaiVal_CylinderPressure">5%</span></div>
+                <div class="xai-track"><div class="xai-fill" id="xai_CylinderPressure" style="width:5%;"></div></div>
+              </div>
+              <div class="xai-item">
+                <div class="xai-labels"><span>Thermal Gradient (CHT/EGT Imbalance)</span><span id="xaiVal_ThermalGradientCHTEGT">8%</span></div>
+                <div class="xai-track"><div class="xai-fill" id="xai_ThermalGradientCHTEGT" style="width:8%;"></div></div>
+              </div>
+              <div class="xai-item">
+                <div class="xai-labels"><span>Vibration FFT Sub-Harmonic Spikes</span><span id="xaiVal_VibrationFFTSpikes">4%</span></div>
+                <div class="xai-track"><div class="xai-fill" id="xai_VibrationFFTSpikes" style="width:4%;"></div></div>
+              </div>
+              <div class="xai-item">
+                <div class="xai-labels"><span>Lubrication Viscosity Breakdown</span><span id="xaiVal_LubricationViscosity">3%</span></div>
+                <div class="xai-track"><div class="xai-fill" id="xai_LubricationViscosity" style="width:3%;"></div></div>
+              </div>
+              <div class="xai-item">
+                <div class="xai-labels"><span>Alternator 28V Bus Ripple</span><span id="xaiVal_AlternatorBusRipple">2%</span></div>
+                <div class="xai-track"><div class="xai-fill" id="xai_AlternatorBusRipple" style="width:2%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ====================================================================
+           TAB 4: MISSION SIMULATION, LIVE BLACK BOX & HISTORICAL REPLAY
+           ==================================================================== -->
+      <section class="tab-content full-tab-view" id="tab-replay">
+        
+        <!-- Live Mission Flight Recorder / Black Box Card -->
+        <div class="telemetry-card" style="padding:16px; background:var(--panel-bg); border:1px solid rgba(0,240,255,0.2); border-radius:var(--radius-md);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div class="card-title" style="margin-bottom:0; color:var(--accent-cyan);">
+              📼 Live Mission Black Box &amp; Sortie Telemetry Stream
+              <span class="badge" style="background:rgba(0,240,255,0.15); color:var(--accent-cyan); margin-left:8px;">ACTIVE SORTIE</span>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:12px; color:var(--accent-cyan); font-weight:700;" id="bbSortieTime">SORTIE T+00:00</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:12px; font-family:var(--font-mono); font-size:11px;">
+            <div style="background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">COORDINATES (X, Y, Z)</span>
+              <span id="bbCoordinates" style="font-weight:700; color:#fff;">X: 0m, Y: 0m, Z: 0m</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">ALTITUDE (NOW / PEAK)</span>
+              <span style="font-weight:700; color:var(--accent-cyan);"><span id="bbAltitude">0 FT</span> / <span id="bbPeakAlt">0 FT</span></span>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">SPEED (NOW / MAX)</span>
+              <span style="font-weight:700; color:#fff;"><span id="bbSpeed">0 KT</span> / <span id="bbPeakSpd">0 KT</span></span>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">ENGINE RPM &amp; G-LOAD</span>
+              <span style="font-weight:700; color:var(--accent-neon-green);"><span id="bbRpm">0 RPM</span> | <span id="bbGload">1.00 g</span></span>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">FLIGHT PHASE</span>
+              <span id="bbPhase" style="font-weight:700; color:var(--accent-cyan);">ON RUNWAY</span>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; font-family:var(--font-mono);">FLIGHT RECORDER TELEMETRY EVENT LOG:</div>
+            <div id="bbEventLog" style="height:80px; overflow-y:auto; background:rgba(0,0,0,0.5); border:1px solid var(--border-subtle); border-radius:4px; padding:6px 10px; font-family:var(--font-mono); font-size:11px; line-height:1.6; color:#94a3b8;">
+              <div style="color:var(--accent-cyan);">&bull; [T+00:00] Telemetry Bus CAN 2.0B Initialized. Extended Kalman Filter (EKF) online.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px; font-size:12px; font-weight:700; color:var(--text-muted);">HISTORICAL MISSION SCENARIOS &amp; ANOMALY PLAYBACK:</div>
+
+        <!-- Replay Scrubber Controls Bar -->
+        <div class="replay-controls-bar">
+          <button class="btn-action primary" id="btnReplayPlay" style="width:120px;">PLAY</button>
+          
+          <div class="replay-scrubber-wrap">
+            <div class="scrubber-time-display">
+              <span>MISSION TIMELINE SCRUBBER</span>
+              <span id="replayTimeLabel">T+0s / 120s</span>
+            </div>
+            <input type="range" class="custom-slider" id="replayScrubber" min="0" max="120" value="0" step="0.5">
+          </div>
+        </div>
+
+        <!-- Mission Profiles Preset Cards -->
+        <div class="mission-presets-grid">
+          
+          <div class="mission-card selected" data-mission="misfire_incident">
+            <h4>&bull; Injector Clog &amp; Misfire Incident</h4>
+            <p>At T+35s, Cylinder #2 suffers injector nozzle clogging leading to misfires, violent 1st order torque flutter, and rapid RUL decay.</p>
+          </div>
+
+          <div class="mission-card" data-mission="high_altitude">
+            <h4>&bull; High Altitude Recon (FL220)</h4>
+            <p>Ascends to 22,000 ft in low ambient pressure (42 kPa). Evaluates turbocharger boost compensation and thin-air cooling efficiency.</p>
+          </div>
+
+          <div class="mission-card" data-mission="hot_desert">
+            <h4>&bull; Hot Desert Endurance Flight</h4>
+            <p>Extreme 48&deg;C ambient environment. Sustained thermal soak, high oil temperature, and pre-ignition knock boundary exploration.</p>
+          </div>
+
+          <div class="mission-card" data-mission="rapid_throttle">
+            <h4>&bull; Rapid Throttle Transient Stress</h4>
+            <p>Acrobatic and evasive flight profiles with rapid throttle chops. Tests manifold pressure overshoot and fuel map response.</p>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ====================================================================
+           TAB 5: AUTONOMOUS MAINTENANCE ADVISORY & SIH ARCHITECTURE DOCS
+           ==================================================================== -->
+      <section class="tab-content full-tab-view" id="tab-reports">
+        
+        <!-- Real-Time Maintenance Work Order & Sortie Dispatcher Card -->
+        <div class="telemetry-card" style="padding:18px; background:var(--panel-bg); border:1px solid rgba(0,240,255,0.25); border-radius:var(--radius-md); margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div class="card-title" style="margin-bottom:0; color:var(--accent-cyan);">
+              🛠️ Live Aircraft Autonomous Maintenance Dispatcher &amp; Work-Order
+              <span class="badge" id="repBadge" style="background:rgba(0,255,136,0.15); color:var(--accent-neon-green); margin-left:8px;">STATUS: NOMINAL</span>
+            </div>
+            <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-muted);">CALL-SIGN: <strong style="color:#fff;">UAV-TWIN-01 (ROTAX 914 TURBO)</strong></span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:14px; font-family:var(--font-mono); font-size:11px;">
+            <div style="background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">CURRENT SORTIE STATUS</span>
+              <span id="repSortieStatus" style="font-weight:700; color:var(--accent-cyan);">ON GROUND - PRE-FLIGHT</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">FLIGHT ENVELOPE</span>
+              <span style="font-weight:700; color:#fff;"><span id="repAltitude">0 FT</span> | <span id="repSpeed">0 KT</span></span>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">AI ANOMALY RISK LEVEL</span>
+              <span id="repAnomalyScore" style="font-weight:700; color:var(--accent-neon-green);">0.02 (LOW)</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:4px; border:1px solid var(--border-subtle);">
+              <span style="color:var(--text-muted); display:block; font-size:10px;">REMAINING USEFUL LIFE (RUL)</span>
+              <span id="repRul" style="font-weight:700; color:var(--accent-cyan);">100% (1,500 hrs)</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Autonomous Work Order Box -->
+          <div id="repWorkOrderBox" style="background:rgba(0,255,136,0.06); border:1px solid rgba(0,255,136,0.25); border-radius:6px; padding:14px; font-size:12px; line-height:1.5;">
+            <div style="font-weight:700; color:var(--accent-neon-green); margin-bottom:4px;" id="repWoHeader">✅ MISSION DISPATCH CLEARANCE #UAV-2026-CLEAR</div>
+            <div id="repWoBody" style="color:var(--text-secondary);">All propulsion and thermodynamic parameters are within certified operational envelope. Aircraft cleared for mission sortie.</div>
+          </div>
+        </div>
+
+        <div class="docs-content-container">
+          <h2>UAV Propulsion Digital Twin &amp; Intelligent PHM System Architecture</h2>
+          
+          <p>
+            This system bridges conventional threshold-based UAV engine monitoring with <strong>Physics-Informed Edge AI (PINN)</strong> and <strong>hybrid thermodynamic data-driven models</strong> for autonomous predictive maintenance.
+          </p>
+
+          <h3>1. Physics-Informed AI (PINN) Core Formulation</h3>
+          <p>
+            Unlike pure black-box deep learning, our model embeds the 1st Law of Thermodynamics directly into the neural network loss function:
+            <code>Loss = MSE(actual, predicted) + &lambda; &middot; |Q_combustion - (W_shaft + Q_exhaust + Q_cooling + Q_friction)|</code>.
+            This prevents physically impossible predictions and ensures zero false-positives under altitude pressure changes.
+          </p>
+
+          <h3>2. Remaining Useful Life (RUL) Weibull Hazard Formulation</h3>
+          <p>
+            RUL is computed via a multi-stress cumulative damage accumulator combining:
+          </p>
+          <ul>
+            <li><strong>Thermal Fatigue:</strong> Manson-Coffin plastic strain cycles calculated from per-cylinder CHT variations.</li>
+            <li><strong>Vibration Energy:</strong> Cumulative tri-axial RMS acceleration integral over engine flight hours.</li>
+            <li><strong>Combustion Shock:</strong> Misfire frequency and in-cylinder peak pressure spikes exceeding 90 bar.</li>
+            <li><strong>Lubrication Degradation:</strong> Oil viscosity index deterioration under boundary lubrication regime.</li>
+          </ul>
+
+          <h3>3. Explainable AI (XAI) & Autonomous Maintenance Work-Orders</h3>
+          <p>
+            When an anomaly is flagged, the system produces real-time SHAP attribution scores revealing whether the root-cause is thermal, electrical, mechanical, or fuel-related, and immediately outputs autonomous maintenance work-orders.
+          </p>
+
+          <button class="btn-action primary" id="btnExportReport" style="width:260px; margin-top:16px;">
+            📄 DOWNLOAD EXECUTIVE MISSION REPORT (.MD)
+          </button>
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Three.js r128 Library for High-Performance WebGL Graphics -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Modular Application Scripts -->
+  <script src="js/speech_alerts.js"></script>
+  <script src="js/physics_ml_engine.js"></script>
+  <script src="js/engine3d.js"></script>
+  <script src="js/flight3d.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/data_samples.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
