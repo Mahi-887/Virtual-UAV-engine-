@@ -186,17 +186,19 @@ class DashboardController {
             this.setEngineRunning(true);
           }
           window.physicsMLEngine.state.throttlePct = 100;
-          this.flightViewer.flightState.airspeedKt = Math.max(52, this.flightViewer.flightState.airspeedKt);
+          this.flightViewer.autoTakeoff.active = true;
+          this.flightViewer.autoTakeoff.stage = 'climb';
+          this.flightViewer.takeoffCooldown = 15.0;
+          this.flightViewer.flightState.airspeedKt = Math.max(55, this.flightViewer.flightState.airspeedKt);
           this.flightViewer.flightState.onGround = false;
           this.flightViewer.flightState.gearRetracted = true;
-          this.flightViewer.flightState.pitchRad = 0.16;
-          this.flightViewer.takeoffCooldown = 8.0;
-          this.flightViewer.flightState.position.y = Math.max(3.5, this.flightViewer.flightState.position.y);
+          this.flightViewer.flightState.pitchRad = 0.28;
+          this.flightViewer.flightState.position.y = Math.max(4.0, this.flightViewer.flightState.position.y);
           if (window.speechAlertEngine) {
-            window.speechAlertEngine.speak("Takeoff initiated. Throttle spooled to maximum. Airborne, gear retracted.", true);
+            window.speechAlertEngine.speak("Takeoff initiated. Spooling to full power. Tactical climb above skyline.", true);
           }
-          this.logFlightEvent("Takeoff initiated. Airspeed 52 KT, climb attitude established.", 'info');
-          this.showAlert("🛫 TAKEOFF INITIATED: UAV airborne! Use W/S or D-Pad for climb & dive, A/D to steer.", "info");
+          this.logFlightEvent("Takeoff initiated. Tactical climb to cruising altitude above city skyline.", 'info');
+          this.showAlert("🛫 TAKEOFF: Climbing above city skyscrapers! Use W/S or D-Pad for climb/dive, A/D to steer.", "info");
         }
       });
     }
