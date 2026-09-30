@@ -676,11 +676,11 @@ class DashboardController {
 
     // Handle Manual Throttle from Keyboard
     if (window.physicsMLEngine.state.engineRunning && !this.isReplayPlaying) {
-      if (this.keys['ArrowUp']) {
-        window.physicsMLEngine.state.throttlePct = Math.min(100, window.physicsMLEngine.state.throttlePct + 35 * dt);
+      if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
+        window.physicsMLEngine.state.throttlePct = Math.min(100, window.physicsMLEngine.state.throttlePct + 45 * dt);
       }
-      if (this.keys['ArrowDown']) {
-        window.physicsMLEngine.state.throttlePct = Math.max(0, window.physicsMLEngine.state.throttlePct - 35 * dt);
+      if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
+        window.physicsMLEngine.state.throttlePct = Math.max(25, window.physicsMLEngine.state.throttlePct - 40 * dt);
       }
     }
 
