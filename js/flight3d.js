@@ -711,9 +711,20 @@ class Flight3DViewer {
       this.propellerGroup.rotation.z += (rpm / 60) * Math.PI * 2 * dt;
     }
 
+    // Auto-unfreeze and reset if pilot commands departure after a crash
+    const isForwardKey = !!(inputKeys['w'] || inputKeys['W'] || inputKeys['KeyW'] || inputKeys['ArrowUp'] || inputKeys['btnPitchUp']);
+    const isClimbKey = !!(inputKeys[' '] || inputKeys['Spacebar'] || inputKeys['Space'] || inputKeys['PageUp'] || inputKeys['btnThrUp']);
+    const isDescentKey = !!(inputKeys['s'] || inputKeys['S'] || inputKeys['KeyS'] || inputKeys['ArrowDown'] || inputKeys['btnPitchDn']);
+    const isBrakeKey = !!(inputKeys['Control'] || inputKeys['PageDown'] || inputKeys['btnThrDn']);
+    const isTakeoffKey = !!(inputKeys['t'] || inputKeys['T'] || inputKeys['KeyT'] || inputKeys['takeoff']);
+
     if (this.flightState.isCrashed) {
-      this.renderer.render(this.scene, this.camera);
-      return;
+      if (isForwardKey || isClimbKey || isTakeoffKey) {
+        this.resetFlight();
+      } else {
+        this.renderer.render(this.scene, this.camera);
+        return;
+      }
     }
 
     if (this.takeoffCooldown > 0) {
@@ -728,7 +739,6 @@ class Flight3DViewer {
 
     // --- 2. SMART AUTO-TAKEOFF CONTROLLER ---
     // Triggered by 'T' key, or UI Takeoff button
-    const isTakeoffKey = inputKeys['t'] || inputKeys['T'] || inputKeys['takeoff'];
     if (isTakeoffKey && this.flightState.onGround && !this.autoTakeoff.active) {
       this.autoTakeoff.active = true;
       this.autoTakeoff.stage = 'spool';
@@ -748,12 +758,13 @@ class Flight3DViewer {
     if (this.autoTakeoff.active) {
       window.physicsMLEngine.state.throttlePct = 100;
       if (this.flightState.onGround) {
+        this.flightState.airspeedKt = Math.max(35, this.flightState.airspeedKt + 100 * dt);
         if (this.flightState.airspeedKt > 24) {
           // Rotate & lift off
           this.flightState.onGround = false;
           this.flightState.gearRetracted = true;
-          this.flightState.pitchRad = 0.26;
-          this.flightState.position.y = 2.5;
+          this.flightState.pitchRad = 0.28;
+          this.flightState.position.y = Math.max(4.0, this.flightState.position.y + 18.0 * dt);
           this.takeoffCooldown = 15.0;
           this.autoTakeoff.stage = 'climb';
           if (window.speechAlertEngine) {
@@ -781,12 +792,7 @@ class Flight3DViewer {
     }
 
     // --- 3. FLIGHT CONTROLS & FLY-BY-WIRE AUTO-STABILIZATION ---
-    const isForwardKey = inputKeys['w'] || inputKeys['W'] || inputKeys['ArrowUp'] || inputKeys['btnPitchUp'];
-    const isClimbKey = inputKeys[' '] || inputKeys['Spacebar'] || inputKeys['PageUp'] || inputKeys['btnThrUp'];
-    const isDescentKey = inputKeys['s'] || inputKeys['S'] || inputKeys['ArrowDown'] || inputKeys['btnPitchDn'];
-    const isBrakeKey = inputKeys['Control'] || inputKeys['PageDown'] || inputKeys['btnThrDn'];
-
-    // Auto-start engine if user presses forward throttle or climb key
+    // Auto-start engine if user presses forward throttle or climb key while on runway
     if ((isForwardKey || isClimbKey) && !engineRunning && window.dashboard && window.dashboard.setEngineRunning) {
       window.dashboard.setEngineRunning(true);
     }
@@ -795,13 +801,13 @@ class Flight3DViewer {
       // Throttle Management:
       if (isForwardKey || isClimbKey) {
         // Full Forward Thrust
-        window.physicsMLEngine.state.throttlePct = Math.min(100, Math.max(90, window.physicsMLEngine.state.throttlePct + 60 * dt));
+        window.physicsMLEngine.state.throttlePct = 100;
       } else if (isDescentKey || isBrakeKey) {
         // Ease throttle for descent / deceleration
         window.physicsMLEngine.state.throttlePct = Math.max(25, window.physicsMLEngine.state.throttlePct - 45 * dt);
       } else if (!this.flightState.onGround && !this.landingApproach) {
-        // Automatic cruising throttle (75%) so the aircraft never drops or stops dead in mid-air
-        window.physicsMLEngine.state.throttlePct += (75 - window.physicsMLEngine.state.throttlePct) * Math.min(1, dt * 2.0);
+        // Automatic cruising throttle (78%) so the aircraft never drops or stops dead in mid-air
+        window.physicsMLEngine.state.throttlePct += (78 - window.physicsMLEngine.state.throttlePct) * Math.min(1, dt * 2.0);
       }
 
       // Responsive Pitch / Climb Dynamics:
@@ -820,16 +826,23 @@ class Flight3DViewer {
           }
         } else if (isClimbKey) {
           // Spacebar: Direct powerful vertical climb up
-          this.flightState.pitchRad = Math.min(0.38, this.flightState.pitchRad + 1.5 * dt);
+          this.flightState.pitchRad = Math.min(0.38, this.flightState.pitchRad + 1.8 * dt);
           this.flightState.position.y = Math.min(380, this.flightState.position.y + 24.0 * dt);
         } else if (isForwardKey) {
-          // 'W' Key: High-speed forward flight with comfortable steady cruise climb
-          this.flightState.pitchRad += (0.04 - this.flightState.pitchRad) * Math.min(1, dt * 3.0);
-          this.flightState.position.y = Math.min(380, this.flightState.position.y + 6.0 * dt);
+          // 'W' Key: High-speed forward flight!
+          // If below city skyline (y < 85), pitch up & climb strongly above skyscrapers!
+          if (this.flightState.position.y < 85) {
+            this.flightState.pitchRad += (0.24 - this.flightState.pitchRad) * Math.min(1, dt * 4.0);
+            this.flightState.position.y = Math.min(380, this.flightState.position.y + 18.0 * dt);
+          } else {
+            // Level supersonic cruise above city with slight pilot pitch trim
+            this.flightState.pitchRad += (0.02 - this.flightState.pitchRad) * Math.min(1, dt * 3.0);
+            this.flightState.position.y = Math.min(380, this.flightState.position.y + 3.0 * dt);
+          }
         } else if (isDescentKey) {
           // 'S' Key: Controlled descent
           this.flightState.pitchRad = Math.max(-0.25, this.flightState.pitchRad - 1.2 * dt);
-          this.flightState.position.y = Math.max(1.2, this.flightState.position.y - 14.0 * dt);
+          this.flightState.position.y = Math.max(12.0, this.flightState.position.y - 14.0 * dt);
         } else {
           // FLY-BY-WIRE AUTO-LEVEL: Returns gently to horizontal cruise
           this.flightState.pitchRad += (0.012 - this.flightState.pitchRad) * Math.min(1, dt * 3.0);
@@ -838,8 +851,8 @@ class Flight3DViewer {
 
       // Roll / Bank Controls (A/D & D-Pad):
       let rollInput = 0;
-      if (inputKeys['d'] || inputKeys['D'] || inputKeys['ArrowRight'] || inputKeys['btnYawR']) rollInput += 1.0;
-      if (inputKeys['a'] || inputKeys['A'] || inputKeys['ArrowLeft'] || inputKeys['btnYawL']) rollInput -= 1.0;
+      if (inputKeys['d'] || inputKeys['D'] || inputKeys['KeyD'] || inputKeys['ArrowRight'] || inputKeys['btnYawR']) rollInput += 1.0;
+      if (inputKeys['a'] || inputKeys['A'] || inputKeys['KeyA'] || inputKeys['ArrowLeft'] || inputKeys['btnYawL']) rollInput -= 1.0;
 
       if (rollInput !== 0) {
         const targetBank = rollInput * 0.55;
@@ -852,11 +865,11 @@ class Flight3DViewer {
       }
 
       // Rudder Yaw Controls (Q / E)
-      if (inputKeys['q'] || inputKeys['Q']) this.flightState.headingRad -= 0.75 * dt;
-      if (inputKeys['e'] || inputKeys['E']) this.flightState.headingRad += 0.75 * dt;
+      if (inputKeys['q'] || inputKeys['Q'] || inputKeys['KeyQ']) this.flightState.headingRad -= 0.75 * dt;
+      if (inputKeys['e'] || inputKeys['E'] || inputKeys['KeyE']) this.flightState.headingRad += 0.75 * dt;
 
       // Landing Command (L)
-      if ((inputKeys['l'] || inputKeys['L'] || inputKeys['land']) && !this.flightState.onGround) {
+      if ((inputKeys['l'] || inputKeys['L'] || inputKeys['KeyL'] || inputKeys['land']) && !this.flightState.onGround) {
         this.autoTakeoff.active = false;
         this.landingApproach = true;
         this.takeoffCooldown = 0;
@@ -874,20 +887,30 @@ class Flight3DViewer {
 
     // --- 4. AIRSPEED & AERODYNAMIC ACCELERATION ---
     const throttleRatio = (window.physicsMLEngine.state.throttlePct || 0) / 100;
-    const targetAirspeed = (engineRunning || isForwardKey) ? Math.max(35, throttleRatio * 85) : 0;
-    this.flightState.airspeedKt += (targetAirspeed - this.flightState.airspeedKt) * Math.min(1, dt * 3.0);
+    const targetAirspeed = (engineRunning || isForwardKey) ? Math.max(45, throttleRatio * 88) : 0;
+    this.flightState.airspeedKt += (targetAirspeed - this.flightState.airspeedKt) * Math.min(1, dt * 4.0);
 
-    // Ground Roll & Snappy Rotation Takeoff (When pilot holds W or Space)
+    // Ground Roll & Snappy Rotation Takeoff (When pilot holds W or Space or Takeoff button)
     if (this.flightState.onGround && (isForwardKey || isClimbKey || this.autoTakeoff.active)) {
+      if (!engineRunning && window.dashboard && window.dashboard.setEngineRunning) {
+        window.dashboard.setEngineRunning(true);
+      }
       window.physicsMLEngine.state.throttlePct = 100;
-      if (this.flightState.airspeedKt > 20) {
+      // Accelerate ground roll rapidly so drone visibly moves forward immediately
+      this.flightState.airspeedKt = Math.max(28, this.flightState.airspeedKt + 80 * dt);
+
+      // Rotate cleanly and lift off off runway!
+      if (this.flightState.airspeedKt >= 25) {
         this.flightState.onGround = false;
         this.flightState.gearRetracted = true;
-        this.flightState.position.y = 2.5;
-        this.flightState.pitchRad = 0.22;
+        this.flightState.position.y = Math.max(3.8, this.flightState.position.y + 16.0 * dt);
+        this.flightState.pitchRad = 0.26;
         this.takeoffCooldown = 15.0;
         if (window.speechAlertEngine) {
           window.speechAlertEngine.speak("Rotate. Airborne, gear retracted.", false);
+        }
+        if (window.dashboard) {
+          window.dashboard.showAlert("🛫 AIRBORNE! Drone climbing rapidly above skyline. Use W to cruise & climb, A/D to turn!", "info");
         }
       }
     }
@@ -900,7 +923,7 @@ class Flight3DViewer {
     // --- 5. 3D POSITION TRANSLATION & AERODYNAMIC LIFT ---
     const forwardX = Math.sin(this.flightState.headingRad);
     const forwardZ = -Math.cos(this.flightState.headingRad);
-    const forwardSpeedUnits = (this.flightState.airspeedKt * 0.514) * 0.85; // Scaled knots to units/sec
+    const forwardSpeedUnits = (this.flightState.airspeedKt * 0.514) * 0.9; // Scaled knots to units/sec
 
     this.flightState.position.x += forwardX * forwardSpeedUnits * dt;
     this.flightState.position.z += forwardZ * forwardSpeedUnits * dt;
@@ -978,7 +1001,7 @@ class Flight3DViewer {
 
   // Check 3D Building Obstacle Proximity & Collision
   checkTerrainCollisions(fwdX, fwdZ) {
-    if (this.flightState.onGround || (this.takeoffCooldown && this.takeoffCooldown > 3.0)) return;
+    if (this.flightState.onGround || (this.takeoffCooldown && this.takeoffCooldown > 0) || this.flightState.position.y >= 75) return;
 
     const dronePos = this.flightState.position;
     let collisionRiskAhead = false;

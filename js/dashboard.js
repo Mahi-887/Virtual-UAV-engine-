@@ -127,20 +127,35 @@ class DashboardController {
   }
 
   bindEvents() {
-    // 1. Keyboard Controls
+    // 1. Keyboard Controls (Robust support for e.key, e.code and all international layouts)
     window.addEventListener('keydown', (e) => {
       this.keys[e.key] = true;
-      if (e.key === 't' || e.key === 'T') {
+      if (e.key) this.keys[e.key.toLowerCase()] = true;
+      if (e.code) this.keys[e.code] = true;
+
+      // Prevent window scroll on Space / Arrow keys during flight
+      if ([' ', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) || e.code === 'Space') {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+        }
+      }
+
+      // Auto-start engine if user presses W or Space while engine is off
+      if ((e.key === 'w' || e.key === 'W' || e.code === 'KeyW' || e.code === 'Space' || e.key === ' ') && !window.physicsMLEngine.state.engineRunning) {
+        this.setEngineRunning(true);
+      }
+
+      if (e.key === 't' || e.key === 'T' || e.code === 'KeyT') {
         this.keys['takeoff'] = true;
       }
-      if (e.key === 'l' || e.key === 'L') {
+      if (e.key === 'l' || e.key === 'L' || e.code === 'KeyL') {
         this.keys['land'] = true;
       }
-      if (e.key === 'r' || e.key === 'R') {
+      if (e.key === 'r' || e.key === 'R' || e.code === 'KeyR') {
         if (this.flightViewer) this.flightViewer.resetFlight();
         this.logFlightEvent("Flight reset to runway centerline.", 'info');
       }
-      if (e.key === 'm' || e.key === 'M') {
+      if (e.key === 'm' || e.key === 'M' || e.code === 'KeyM') {
         if (window.speechAlertEngine) {
           const isMuted = window.speechAlertEngine.muteToggle();
           const btnMute = document.getElementById('btnFlightMuteAlarm');
@@ -151,13 +166,25 @@ class DashboardController {
 
     window.addEventListener('keyup', (e) => {
       this.keys[e.key] = false;
-      if (e.key === 't' || e.key === 'T') {
+      if (e.key) this.keys[e.key.toLowerCase()] = false;
+      if (e.code) this.keys[e.code] = false;
+      if (e.key === 't' || e.key === 'T' || e.code === 'KeyT') {
         this.keys['takeoff'] = false;
       }
-      if (e.key === 'l' || e.key === 'L') {
+      if (e.key === 'l' || e.key === 'L' || e.code === 'KeyL') {
         this.keys['land'] = false;
       }
     });
+
+    // Transfer focus to window/flight viewport when clicking canvas to ensure instant keyboard flight
+    const flightVp = document.getElementById('flightViewport');
+    if (flightVp) {
+      flightVp.addEventListener('pointerdown', () => {
+        if (document.activeElement && document.activeElement.blur) {
+          document.activeElement.blur();
+        }
+      });
+    }
 
     // 2. Tactile On-Screen Flight Controller Buttons
     const bindPad = (elementId, keyMap) => {
@@ -180,7 +207,8 @@ class DashboardController {
 
     // Takeoff Button (UI Button or 'T' key)
     if (this.btnTakeoff) {
-      this.btnTakeoff.addEventListener('click', () => {
+      this.btnTakeoff.addEventListener('click', (e) => {
+        if (e.target && e.target.blur) e.target.blur();
         if (this.flightViewer) {
           if (this.flightViewer.flightState.isCrashed) {
             this.flightViewer.resetFlight();
@@ -209,7 +237,8 @@ class DashboardController {
     // Reset Flight Button
     const btnFlightReset = document.getElementById('btnFlightReset');
     if (btnFlightReset) {
-      btnFlightReset.addEventListener('click', () => {
+      btnFlightReset.addEventListener('click', (e) => {
+        if (e.target && e.target.blur) e.target.blur();
         if (this.flightViewer) this.flightViewer.resetFlight();
         this.logFlightEvent("Flight reset to runway centerline via UI.", 'info');
         this.showAlert("🔄 Flight reset to runway centerline. Ready for takeoff.", "info");
@@ -219,7 +248,8 @@ class DashboardController {
     // Landing Button (UI Button or 'L' key)
     const btnLand = document.getElementById('btnLand');
     if (btnLand) {
-      btnLand.addEventListener('click', () => {
+      btnLand.addEventListener('click', (e) => {
+        if (e.target && e.target.blur) e.target.blur();
         if (this.flightViewer && !this.flightViewer.flightState.onGround) {
           window.physicsMLEngine.state.throttlePct = 25;
           this.flightViewer.flightState.gearRetracted = false;
@@ -238,14 +268,16 @@ class DashboardController {
     // Flight Viewport Header Buttons (Direct Engine Start/Stop & Mute)
     const btnFlightEngineToggle = document.getElementById('btnFlightEngineToggle');
     if (btnFlightEngineToggle) {
-      btnFlightEngineToggle.addEventListener('click', () => {
+      btnFlightEngineToggle.addEventListener('click', (e) => {
+        if (e.target && e.target.blur) e.target.blur();
         this.setEngineRunning(!window.physicsMLEngine.state.engineRunning);
       });
     }
 
     const btnFlightMuteAlarm = document.getElementById('btnFlightMuteAlarm');
     if (btnFlightMuteAlarm) {
-      btnFlightMuteAlarm.addEventListener('click', () => {
+      btnFlightMuteAlarm.addEventListener('click', (e) => {
+        if (e.target && e.target.blur) e.target.blur();
         if (window.speechAlertEngine) {
           const isMuted = window.speechAlertEngine.muteToggle();
           btnFlightMuteAlarm.textContent = isMuted ? "🔕 UNMUTE ALARM (M)" : "🔔 MUTE ALARM (M)";
@@ -526,6 +558,9 @@ class DashboardController {
   // UNIFIED ENGINE CONTROLLER (TOP NAVBAR & FLIGHT VIEWPORT HEADER)
   // ==========================================================================
   setEngineRunning(isRunning) {
+    if (isRunning && this.flightViewer && this.flightViewer.flightState.isCrashed) {
+      this.flightViewer.resetFlight();
+    }
     window.physicsMLEngine.state.engineRunning = isRunning;
 
     // 1. Update Sidebar / Top Engine Toggle Button
@@ -676,10 +711,10 @@ class DashboardController {
 
     // Handle Manual Throttle from Keyboard
     if (window.physicsMLEngine.state.engineRunning && !this.isReplayPlaying) {
-      if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
-        window.physicsMLEngine.state.throttlePct = Math.min(100, window.physicsMLEngine.state.throttlePct + 45 * dt);
+      if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W'] || this.keys['KeyW']) {
+        window.physicsMLEngine.state.throttlePct = Math.min(100, Math.max(90, window.physicsMLEngine.state.throttlePct + 120 * dt));
       }
-      if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
+      if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S'] || this.keys['KeyS']) {
         window.physicsMLEngine.state.throttlePct = Math.max(25, window.physicsMLEngine.state.throttlePct - 40 * dt);
       }
     }
