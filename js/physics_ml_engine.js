@@ -32,6 +32,7 @@ class PhysicsMLEngine {
     };
 
     // State Variables
+    this.engineRunTime = 0;
     this.state = {
       engineRunning: false,
       airborne: false,
@@ -157,9 +158,11 @@ class PhysicsMLEngine {
     this.state.ambientPressureKpa = Math.max(20, localAmbientPressure);
 
     if (!this.state.engineRunning) {
+      this.engineRunTime = 0;
       this.simulateEngineOff(dt, localAmbientTemp);
       return this.state;
     }
+    this.engineRunTime = (this.engineRunTime || 0) + dt;
 
     // --- 1. RPM DYNAMICS (Rotational Inertia) ---
     const throttleRatio = this.state.throttlePct / 100;
@@ -322,12 +325,16 @@ class PhysicsMLEngine {
     const thermoResidual = Math.abs(avgCht - idealCht) / 100.0;
 
     // Vibration anomaly thresholding
-    const vibAnomaly = Math.max(0, (this.state.vibrationRmsG - 1.2) / 2.5);
+    const vibAnomaly = Math.max(0, (this.state.vibrationRmsG - 1.35) / 2.5);
 
-    // Pressure & Lubrication stress
-    const pressureAnomaly = Math.max(0, (this.state.cylinderPressureBar - 85) / 35);
-    const oilAnomaly = Math.max(0, (30 - this.state.oilPressurePsi) / 30);
-    const electricalAnomaly = Math.max(0, (26.5 - this.state.batteryVoltage) / 5);
+    // Pressure & Lubrication stress (suppress pump priming transient for first 4 seconds)
+    const pressureAnomaly = Math.max(0, (this.state.cylinderPressureBar - 88) / 35);
+    const oilAnomaly = (this.state.engineRunning && this.engineRunTime > 4.0)
+      ? Math.max(0, (28 - this.state.oilPressurePsi) / 28)
+      : (this.activeFaults.oilLoss ? 0.85 : 0);
+    const electricalAnomaly = (this.state.engineRunning && this.engineRunTime > 3.0)
+      ? Math.max(0, (26.0 - this.state.batteryVoltage) / 5)
+      : 0;
 
     // Combined Anomaly Score (0.0 to 1.0)
     let rawScore = (thermoResidual * this.pinnWeights.thermoLossWeight) +
@@ -347,8 +354,9 @@ class PhysicsMLEngine {
     const predictions = [];
 
     // 1. Combustion Overpressure & Head Gasket Blow-by Prediction
-    if (this.state.cylinderPressureBar > 78 || this.activeFaults.overpressureBoost) {
-      const overpressureDelta = Math.max(0, this.state.cylinderPressureBar - 75);
+    // Safe certified continuous limit for Rotax 914 Turbo is 85-88 bar. Fault triggers above 88.5 bar.
+    if (this.state.cylinderPressureBar > 88.5 || this.activeFaults.overpressureBoost) {
+      const overpressureDelta = Math.max(0, this.state.cylinderPressureBar - 85);
       const ttfSec = Math.max(3, Math.round(45 - (overpressureDelta * 1.3)));
       const prob = Math.min(99, Math.round(65 + (overpressureDelta * 2.5)));
       predictions.push({
@@ -356,28 +364,30 @@ class PhysicsMLEngine {
         subsystem: 'Combustion Chamber',
         ttfSec: ttfSec,
         probPct: prob,
-        severity: this.state.cylinderPressureBar > 88 ? 'CRITICAL' : 'WARNING',
+        severity: this.state.cylinderPressureBar > 92 ? 'CRITICAL' : 'WARNING',
         action: 'REDUCE THROTTLE TO <60%, RETARD IGNITION 3°'
       });
     }
 
     // 2. Thermal Runaway & Valve Seat Warping Prediction
-    if (maxCht > 125 || this.activeFaults.injectorClog) {
+    // Continuous certified CHT limit is 135°C (275°F); critical max is 165°C.
+    if (maxCht > 138 || this.activeFaults.injectorClog) {
       const gradient = 0.85;
       const ttfSec = Math.max(5, Math.round((this.specs.criticalCht - maxCht) / gradient));
-      const prob = Math.min(98, Math.round(60 + ((maxCht - 120) * 1.8)));
+      const prob = Math.min(98, Math.round(60 + ((maxCht - 130) * 2.0)));
       predictions.push({
         hazard: 'EXHAUST VALVE SEIZURE & PRE-IGNITION DETONATION',
         subsystem: 'Thermal & Cylinder Heads',
         ttfSec: ttfSec,
         probPct: prob,
-        severity: maxCht > 145 ? 'CRITICAL' : 'WARNING',
+        severity: maxCht > 150 ? 'CRITICAL' : 'WARNING',
         action: 'INCREASE AIRSPEED FOR RAM COOLING / ENRICH MIXTURE'
       });
     }
 
     // 3. Hydrodynamic Lubrication Collapse & Crankshaft Seizure Prediction
-    if (this.state.oilPressurePsi < 28 || this.activeFaults.oilLoss) {
+    // Oil pressure takes 3-4 seconds to prime from 0 to 45 psi at cold start.
+    if (((this.state.engineRunning && this.engineRunTime > 4.0 && this.state.oilPressurePsi < 25)) || this.activeFaults.oilLoss) {
       const ttfSec = Math.max(3, Math.round(this.state.oilPressurePsi * 1.1));
       const prob = Math.min(99, Math.round(75 + (28 - this.state.oilPressurePsi) * 1.8));
       predictions.push({
@@ -385,7 +395,7 @@ class PhysicsMLEngine {
         subsystem: 'Lubrication Gallery',
         ttfSec: ttfSec,
         probPct: prob,
-        severity: this.state.oilPressurePsi < 18 ? 'CRITICAL' : 'WARNING',
+        severity: this.state.oilPressurePsi < 16 ? 'CRITICAL' : 'WARNING',
         action: 'THROTTLE TO IDLE, INITIATE EMERGENCY RUNWAY APPROACH (L)'
       });
     }
@@ -406,7 +416,7 @@ class PhysicsMLEngine {
     }
 
     // 5. High-Frequency Harmonic Vibration & Propeller Imbalance Prediction
-    if (this.state.vibrationRmsG > 1.4 || this.activeFaults.misfire || this.activeFaults.combustionInstability) {
+    if (this.state.vibrationRmsG > 1.6 || this.activeFaults.misfire || this.activeFaults.combustionInstability) {
       const ttfSec = Math.max(8, Math.round(60 - (this.state.vibrationRmsG * 12)));
       predictions.push({
         hazard: 'ENGINE AIRFRAME MOUNT FATIGUE & PROPELLER RESONANCE',
@@ -419,7 +429,8 @@ class PhysicsMLEngine {
     }
 
     // 6. Aerodynamic Stall & Loss of Control (Drone Airframe Prognostic)
-    if (this.state.airborne && this.state.airspeedKt < 32 && this.state.airspeedKt > 5) {
+    // Only evaluate stall in airborne cruise flight (altitude > 40ft), not during takeoff roll or ground rotation
+    if (this.state.airborne && this.state.altitudeFt > 40 && this.state.airspeedKt < 32 && this.state.airspeedKt > 5) {
       predictions.push({
         hazard: 'AERODYNAMIC STALL & SPIN HAZARD (AIRSPEED BELOW V_STALL)',
         subsystem: 'Aerodynamic Flight Control',
@@ -475,41 +486,46 @@ class PhysicsMLEngine {
     // --- C. UPDATE 12 HIGH-FIDELITY SENSORS & EKF DRIFT MONITORING ---
     const s = this.state.sensors;
     if (s) {
-      // Cylinders CHT 1-4
+      // Cylinders CHT 1-4 (Certified continuous max: 135°C, critical: 148°C)
       s.cht1.val = Math.round(this.state.cht[0]);
-      s.cht1.status = s.cht1.val > 145 ? 'CRITICAL' : s.cht1.val > 125 ? 'WARN' : 'NOMINAL';
-      s.cht1.health = s.cht1.val > 145 ? 78 : s.cht1.val > 125 ? 91 : 99.6;
+      s.cht1.status = s.cht1.val > 148 ? 'CRITICAL' : s.cht1.val > 135 ? 'WARN' : 'NOMINAL';
+      s.cht1.health = s.cht1.val > 148 ? 78 : s.cht1.val > 135 ? 91 : 99.6;
 
       s.cht2.val = Math.round(this.state.cht[1]);
-      s.cht2.status = s.cht2.val > 145 ? 'CRITICAL' : s.cht2.val > 125 ? 'WARN' : 'NOMINAL';
-      s.cht2.health = s.cht2.val > 145 ? 75 : s.cht2.val > 125 ? 89 : 99.4;
+      s.cht2.status = s.cht2.val > 148 ? 'CRITICAL' : s.cht2.val > 135 ? 'WARN' : 'NOMINAL';
+      s.cht2.health = s.cht2.val > 148 ? 75 : s.cht2.val > 135 ? 89 : 99.4;
 
       s.cht3.val = Math.round(this.state.cht[2]);
-      s.cht3.status = s.cht3.val > 145 ? 'CRITICAL' : s.cht3.val > 125 ? 'WARN' : 'NOMINAL';
-      s.cht3.health = s.cht3.val > 145 ? 80 : s.cht3.val > 125 ? 92 : 99.7;
+      s.cht3.status = s.cht3.val > 148 ? 'CRITICAL' : s.cht3.val > 135 ? 'WARN' : 'NOMINAL';
+      s.cht3.health = s.cht3.val > 148 ? 80 : s.cht3.val > 135 ? 92 : 99.7;
 
       s.cht4.val = Math.round(this.state.cht[3]);
-      s.cht4.status = s.cht4.val > 145 ? 'CRITICAL' : s.cht4.val > 125 ? 'WARN' : 'NOMINAL';
-      s.cht4.health = s.cht4.val > 145 ? 82 : s.cht4.val > 125 ? 93 : 99.8;
+      s.cht4.status = s.cht4.val > 148 ? 'CRITICAL' : s.cht4.val > 135 ? 'WARN' : 'NOMINAL';
+      s.cht4.health = s.cht4.val > 148 ? 82 : s.cht4.val > 135 ? 93 : 99.8;
 
-      // EGT Mean
+      // EGT Mean (Exhaust Gas Temp - Safe up to 720°C cruise, 800°C peak)
       s.egt.val = Math.round(avgEgt);
-      s.egt.status = s.egt.val > 780 ? 'CRITICAL' : s.egt.val > 680 ? 'WARN' : 'NOMINAL';
-      s.egt.health = s.egt.val > 780 ? 82 : 99.1;
+      s.egt.status = s.egt.val > 820 ? 'CRITICAL' : s.egt.val > 730 ? 'WARN' : 'NOMINAL';
+      s.egt.health = s.egt.val > 820 ? 82 : 99.1;
 
-      // Manifold Pressure
+      // Manifold Pressure (MAP)
       s.map.val = Math.round(this.state.mapKpa);
-      s.map.status = s.map.val > 140 ? 'CRITICAL' : s.map.val > 115 ? 'WARN' : 'NOMINAL';
-      s.map.health = s.map.val > 140 ? 79 : 99.5;
+      s.map.status = s.map.val > 145 ? 'CRITICAL' : s.map.val > 125 ? 'WARN' : 'NOMINAL';
+      s.map.health = s.map.val > 145 ? 79 : 99.5;
 
-      // Oil Pressure & Temp
+      // Oil Pressure & Temp (With warm-up priming protection)
       s.oil_p.val = Math.round(this.state.oilPressurePsi);
-      s.oil_p.status = s.oil_p.val < 18 ? 'CRITICAL' : s.oil_p.val < 28 ? 'WARN' : 'NOMINAL';
-      s.oil_p.health = s.oil_p.val < 18 ? 68 : s.oil_p.val < 28 ? 85 : 99.9;
+      if (!this.state.engineRunning || this.engineRunTime < 3.5) {
+        s.oil_p.status = 'NOMINAL';
+        s.oil_p.health = 99.9;
+      } else {
+        s.oil_p.status = s.oil_p.val < 16 ? 'CRITICAL' : s.oil_p.val < 26 ? 'WARN' : 'NOMINAL';
+        s.oil_p.health = s.oil_p.val < 16 ? 68 : s.oil_p.val < 26 ? 85 : 99.9;
+      }
 
       s.oil_t.val = Math.round(this.state.oilTempC);
-      s.oil_t.status = s.oil_t.val > 120 ? 'CRITICAL' : s.oil_t.val > 105 ? 'WARN' : 'NOMINAL';
-      s.oil_t.health = s.oil_t.val > 120 ? 81 : 99.2;
+      s.oil_t.status = s.oil_t.val > 125 ? 'CRITICAL' : s.oil_t.val > 110 ? 'WARN' : 'NOMINAL';
+      s.oil_t.health = s.oil_t.val > 125 ? 81 : 99.2;
 
       // Fuel Flow
       s.fuel_flow.val = parseFloat(this.state.fuelFlowLph.toFixed(1));
@@ -518,18 +534,18 @@ class PhysicsMLEngine {
 
       // 28V DC Avionics Bus
       s.bus_v.val = parseFloat(this.state.batteryVoltage.toFixed(1));
-      s.bus_v.status = s.bus_v.val < 24.0 ? 'CRITICAL' : s.bus_v.val < 26.5 ? 'WARN' : 'NOMINAL';
-      s.bus_v.health = s.bus_v.val < 24.0 ? 74 : 99.8;
+      s.bus_v.status = s.bus_v.val < 23.5 ? 'CRITICAL' : s.bus_v.val < 25.5 ? 'WARN' : 'NOMINAL';
+      s.bus_v.health = s.bus_v.val < 23.5 ? 74 : 99.8;
 
-      // Pitot Dynamic Airspeed
+      // Pitot Dynamic Airspeed (Safe in flight above stall speed)
       s.pitot.val = Math.round(this.state.airspeedKt);
-      s.pitot.status = (this.state.airborne && s.pitot.val < 32) ? 'CRITICAL' : 'NOMINAL';
+      s.pitot.status = (this.state.airborne && this.state.altitudeFt > 40 && s.pitot.val < 32) ? 'CRITICAL' : 'NOMINAL';
       s.pitot.health = 99.6;
 
       // Triaxial IMU Vibration Accelerometer
       s.imu_g.val = parseFloat(this.state.vibrationRmsG.toFixed(2));
-      s.imu_g.status = s.imu_g.val > 2.5 ? 'CRITICAL' : s.imu_g.val > 1.4 ? 'WARN' : 'NOMINAL';
-      s.imu_g.health = s.imu_g.val > 2.5 ? 70 : s.imu_g.val > 1.4 ? 86 : 99.7;
+      s.imu_g.status = s.imu_g.val > 2.8 ? 'CRITICAL' : s.imu_g.val > 1.6 ? 'WARN' : 'NOMINAL';
+      s.imu_g.health = s.imu_g.val > 2.8 ? 70 : s.imu_g.val > 1.6 ? 86 : 99.7;
     }
 
     // --- D. WEIBULL SURVIVAL & RUL (Remaining Useful Life) ---
@@ -543,9 +559,10 @@ class PhysicsMLEngine {
     this.state.rulHours = (this.state.rulPercent / 100) * 1500; // Based on 1500 hr TBO (Time Between Overhaul)
 
     // --- E. HEALTH STATUS CATEGORIZATION ---
-    if (this.state.anomalyScore > 0.65 || this.state.rulPercent < 35 || this.state.oilPressurePsi < 18 || this.state.prognostics.severity === 'CRITICAL') {
+    const isOilCritical = (this.state.engineRunning && this.engineRunTime > 4.0 && this.state.oilPressurePsi < 16) || this.activeFaults.oilLoss;
+    if (this.state.anomalyScore > 0.70 || this.state.rulPercent < 35 || isOilCritical || this.state.prognostics.severity === 'CRITICAL') {
       this.state.healthStatus = 'CRITICAL';
-    } else if (this.state.anomalyScore > 0.30 || maxCht > 135 || this.state.vibrationRmsG > 1.4 || this.state.prognostics.severity === 'WARNING') {
+    } else if (this.state.anomalyScore > 0.35 || maxCht > 140 || this.state.vibrationRmsG > 1.6 || this.state.prognostics.severity === 'WARNING') {
       this.state.healthStatus = 'WARNING';
     } else {
       this.state.healthStatus = 'NOMINAL';
@@ -621,3 +638,232 @@ class PhysicsMLEngine {
 
 // Export singleton instance
 window.physicsMLEngine = new PhysicsMLEngine();
+
+// ============================================================================
+// COMPREHENSIVE SENSORS & ENGINE COMPONENTS KNOWLEDGE REPOSITORY
+// (Designed for Judges, Flight Operators, and Non-Engineers)
+// ============================================================================
+window.uavKnowledgeBase = {
+  sensors: {
+    cht1: {
+      name: "CHT 1 — Cylinder Head Temperature #1",
+      code: "CHT_CYL_01",
+      techType: "Type-K Fast-Response Chromel-Alumel Thermocouple",
+      category: "Thermodynamics & Combustion",
+      role: "Measures the metal temperature of Cylinder #1 aluminum combustion dome where flame front propagates.",
+      normalRange: "75°C to 135°C (Certified Continuous)",
+      warningRange: "135°C to 148°C (Elevated Thermal Load)",
+      criticalRange: "> 148°C (Catastrophic Pre-Ignition Risk)",
+      failureImpact: "Causes head gasket decompression, micro-cracks in cylinder barrel, and power loss.",
+      howAiUsesIt: "PINN compares expected thermodynamic heat rejection vs ram-air airspeed cooling; EKF isolates sensor drift."
+    },
+    cht2: {
+      name: "CHT 2 — Cylinder Head Temperature #2",
+      code: "CHT_CYL_02",
+      techType: "Type-K Fast-Response Chromel-Alumel Thermocouple",
+      category: "Thermodynamics & Combustion",
+      role: "Monitors thermal load on Cylinder #2 (the primary cylinder monitored for spark misfire & detonation).",
+      normalRange: "75°C to 135°C (Certified Continuous)",
+      warningRange: "135°C to 148°C (Elevated Thermal Load)",
+      criticalRange: "> 148°C (Thermal Runaway / Detonation)",
+      failureImpact: "Misfire drops CHT by ~30°C while injector clogs raise CHT due to dangerously lean AFR burning.",
+      howAiUsesIt: "Real-time thermal gradient tracking across cylinders 1-4 to catch asymmetric combustion."
+    },
+    cht3: {
+      name: "CHT 3 — Cylinder Head Temperature #3",
+      code: "CHT_CYL_03",
+      techType: "Type-K Fast-Response Chromel-Alumel Thermocouple",
+      category: "Thermodynamics & Combustion",
+      role: "Monitors Cylinder #3 combustion dome temperature on rear cylinder bank.",
+      normalRange: "75°C to 135°C (Certified Continuous)",
+      warningRange: "135°C to 148°C (Elevated Thermal Load)",
+      criticalRange: "> 148°C (Exhaust Valve Seat Warpage)",
+      failureImpact: "Loss of compression seal leading to blow-by and oil dilution.",
+      howAiUsesIt: "Differential cylinder thermals fed into Weibull degradation model."
+    },
+    cht4: {
+      name: "CHT 4 — Cylinder Head Temperature #4",
+      code: "CHT_CYL_04",
+      techType: "Type-K Fast-Response Chromel-Alumel Thermocouple",
+      category: "Thermodynamics & Combustion",
+      role: "Monitors Cylinder #4 combustion chamber metal temperature.",
+      normalRange: "75°C to 135°C (Certified Continuous)",
+      warningRange: "135°C to 148°C (Elevated Thermal Load)",
+      criticalRange: "> 148°C (Pre-ignition & Head Fissures)",
+      failureImpact: "Overheating leads to valve guide binding and piston ring micro-welding.",
+      howAiUsesIt: "Used in 4-cylinder thermal balance residual loss calculation in PINN."
+    },
+    egt: {
+      name: "EGT — Exhaust Gas Temperature",
+      code: "EGT_MEAN",
+      techType: "Inconel-Sheathed Mineral-Insulated Thermocouple",
+      category: "Combustion Efficiency",
+      role: "Measures combustion exhaust gases leaving cylinder exhaust ports into the manifold.",
+      normalRange: "550°C to 720°C (Cruise Stoichiometric)",
+      warningRange: "720°C to 820°C (Lean Mixture / Late Combustion)",
+      criticalRange: "> 820°C (Turbo Turbine Blade Oxidation)",
+      failureImpact: "Turbine wheel erosion, exhaust manifold cracking, turbocharger bearing coking.",
+      howAiUsesIt: "Coupled with fuel flow and MAP to verify stoichiometric Air-Fuel Ratio (lambda 1.0)."
+    },
+    map: {
+      name: "MAP — Manifold Absolute Pressure",
+      code: "MAP_INTAKE",
+      techType: "Piezoresistive Silicon Micro-Machined Pressure Sensor",
+      category: "Air Induction & Boosting",
+      role: "Measures air pressure inside the intake manifold downstream of the throttle body and turbocharger.",
+      normalRange: "35 kPa (idle) to 115 kPa (boosted cruise)",
+      warningRange: "115 kPa to 140 kPa (Overboost)",
+      criticalRange: "> 145 kPa (Turbo Wastegate Actuator Jam)",
+      failureImpact: "Excessive boost causes in-cylinder pressure to exceed 90 bar, causing head gasket blow-by.",
+      howAiUsesIt: "Primary input to Otto cycle thermodynamic P-V model calculating engine volumetric efficiency."
+    },
+    oil_p: {
+      name: "OIL P — Engine Lubrication Oil Pressure",
+      code: "OIL_PRESS_PSI",
+      techType: "Ceramic Capacitive High-Pressure Oil Transducer",
+      category: "Hydrodynamic Lubrication",
+      role: "Measures oil galley pressure supplying lubricating hydrodynamic film to crankshaft and rod bearings.",
+      normalRange: "30 to 65 PSI (Warm Operating Range)",
+      warningRange: "18 to 28 PSI (Boundary Lubrication Alert)",
+      criticalRange: "< 16 PSI (Immediate Journal Bearing Metal Contact)",
+      failureImpact: "Loss of oil pressure causes rod knock, bearing wiping, and catastrophic crankshaft seizure in seconds.",
+      howAiUsesIt: "Startup warm-up suppression curve; early prognostics calculate time-to-seizure if pressure decays."
+    },
+    oil_t: {
+      name: "OIL T — Engine Oil Temperature",
+      code: "OIL_TEMP_C",
+      techType: "Thin-Film Platinum RTD (PT1000) Sensor",
+      category: "Lubrication Thermal State",
+      role: "Monitors lubricating oil temperature inside the scavenge return line and oil cooler.",
+      normalRange: "70°C to 105°C (Optimum Viscosity)",
+      warningRange: "105°C to 125°C (Oil Thinning & Oxidation)",
+      criticalRange: "> 125°C (Thermal Breakdown of Oil Additives)",
+      failureImpact: "Degrades oil viscosity index, leading to metal-to-metal contact at high RPM.",
+      howAiUsesIt: "Calculates kinetic viscosity degradation and wear accumulation in the Weibull survival model."
+    },
+    fuel_flow: {
+      name: "FUEL FLOW — Mass Flow Rate Consumption",
+      code: "FUEL_FLOW_LPH",
+      techType: "Pelton Wheel Micro-Turbine Optical Flowmeter",
+      category: "Fuel Delivery & Range",
+      role: "Measures fuel consumed by the electronic injection rail in Liters per Hour (L/h).",
+      normalRange: "1.8 L/h (idle) to 28.5 L/h (full throttle takeoff)",
+      warningRange: "> 32.0 L/h (Fuel Rail Leak / Flooding)",
+      criticalRange: "0.0 L/h at high throttle (Fuel Line Vapor Lock / Pump Failure)",
+      failureImpact: "Inaccurate fuel calculation leads to sudden fuel exhaustion and engine flameout mid-flight.",
+      howAiUsesIt: "Continuously computes UAV range remaining (km) and seconds-to-flameout countdown."
+    },
+    bus_v: {
+      name: "BUS 28V — Avionics & Generator Potential",
+      code: "BUS_POTENTIAL_V",
+      techType: "Galvanically Isolated Differential Voltage Divider",
+      category: "Electrical Power Architecture",
+      role: "Monitors the main 28V DC electrical bus powered by the engine-driven alternator and backup LiFePO4 battery.",
+      normalRange: "27.2V to 28.6V (Alternator Regulated)",
+      warningRange: "24.0V to 26.5V (Alternator Drop / Battery Depletion)",
+      criticalRange: "< 23.5V (Flight Computer & Ignition Brownout)",
+      failureImpact: "Loss of spark ignition, fly-by-wire servo stall, loss of telemetry and control links.",
+      howAiUsesIt: "Detects alternator diode bridge failures and triggers battery preservation flight mode."
+    },
+    pitot: {
+      name: "PITOT — Aerodynamic Dynamic Airspeed",
+      code: "AIRSPEED_KT",
+      techType: "Heated Multi-Port Pitot-Static Differential Transducer",
+      category: "Aerodynamics & Flight Dynamics",
+      role: "Measures dynamic impact ram-air pressure to compute indicated airspeed (IAS) in knots (KT).",
+      normalRange: "45 KT to 95 KT (Normal Cruise Envelope)",
+      warningRange: "32 KT to 40 KT (Approaching Stall Envelope)",
+      criticalRange: "< 32 KT while airborne (Aerodynamic Stall / Spin)",
+      failureImpact: "Wings lose lift causing sudden nose drop, unrecoverable spin, or ground impact.",
+      howAiUsesIt: "Correlates ram-air cooling airflow with engine CHT temperatures and triggers stall avoidance warnings."
+    },
+    imu_g: {
+      name: "IMU G — 3-Axis Engine Vibration Accelerometer",
+      code: "VIB_RMS_G",
+      techType: "MEMS Triaxial High-Bandwidth Piezoelectric Accelerometer",
+      category: "Structural Dynamics & Harmonics",
+      role: "Measures root-mean-square (RMS) high-frequency vibrations from engine mounts and rotating assembly.",
+      normalRange: "0.15 g to 1.35 g (Smooth Balanced Operation)",
+      warningRange: "1.35 g to 2.50 g (Combustion Flutter / Propeller Imbalance)",
+      criticalRange: "> 2.50 g (Bearing Spalling / Connecting Rod Failure)",
+      failureImpact: "Fatigue cracking of airframe carbon-fiber mounts and propeller hub structural separation.",
+      howAiUsesIt: "Fast Fourier Transform (FFT) harmonic order analysis to localize misfires to specific cylinders."
+    }
+  },
+
+  components: {
+    cylinders: {
+      name: "Cylinder Block & Ceramic-Coated Liners",
+      material: "A356-T6 Aerospace Aluminum Alloy with Nikasil/Ceramic Composite Bore",
+      role: "Houses the 4 reciprocating pistons and withstands peak combustion pressures up to 90 bar.",
+      thermodynamics: "Dissipates up to 45 kW of combustion heat rejection via high-surface-area CNC cooling fins.",
+      failureModes: "Thermal bore distortion, liner scuffing, micro-cracking around spark plug threads.",
+      aiMonitoring: "CHT thermocouples 1-4 and PINN thermodynamic heat-flow residual tracking."
+    },
+    pistons: {
+      name: "Forged Racing Pistons & Ring Pack",
+      material: "Forged 2618 High-Silicon Aluminum Alloy with Moly-Disulfide Skirt Coating",
+      role: "Converts high-pressure expanding combustion gases into linear reciprocating mechanical force.",
+      thermodynamics: "Undergoes acceleration loads exceeding 1,200 g at 5,800 RPM; crown temperatures reach 320°C.",
+      failureModes: "Piston crown detonation erosion, ring sticking from carbon buildup, wrist pin gudgeon galling.",
+      aiMonitoring: "In-cylinder peak pressure model (bar) and in-cylinder acoustic vibration harmonics."
+    },
+    conrods: {
+      name: "Forged H-Beam Connecting Rods",
+      material: "4340 Chrome-Moly Forged Steel with Shot-Peened Fatigue Resistance",
+      role: "Transfers kinetic reciprocating force from the piston wrist pin to the rotating crankshaft journal.",
+      thermodynamics: "Subjected to alternating tension-compression cycles of up to 28 kN per combustion stroke.",
+      failureModes: "Fatigue failure at rod small end, rod bolt stretching, big-end bearing spin from oil starvation.",
+      aiMonitoring: "Triaxial IMU vibration sensor detecting 2nd-order rotational inertia imbalance."
+    },
+    crankshaft: {
+      name: "Counterweighted Forged Steel Crankshaft",
+      material: "4340 Forged Steel, Gas-Nitrided with Micro-Polished Journal Fillets",
+      role: "Converts linear piston reciprocation into smooth rotary torque to drive the pusher propeller.",
+      thermodynamics: "Balanced with tungsten counterweights to minimize 1st and 2nd harmonic torsional vibrations.",
+      failureModes: "Hydrodynamic journal bearing wiping, crankshaft web fatigue fractures, torsional flutter.",
+      aiMonitoring: "Oil pressure transducer (PSI), oil temperature (°C), and RPM Hall-effect sensor."
+    },
+    valves: {
+      name: "DOHC Valvetrain & Sodium-Cooled Valves",
+      material: "Inconel 751 Exhaust Valves with Hollow Sodium-Filled Stems; Titanium Retainers",
+      role: "Precisely regulates intake air charge and exhaust gas evacuation timed to crankshaft rotation.",
+      thermodynamics: "Sodium liquefies at 97°C, sloshing inside hollow stems to conduct heat away from the valve face.",
+      failureModes: "Exhaust valve seat burning, carbon seat erosion, valve spring harmonic resonance float.",
+      aiMonitoring: "EGT thermocouple tracking exhaust valve sealing; CHT tracking valve guide temperatures."
+    },
+    sparkplugs: {
+      name: "Dual Iridium-Tipped Aviation Spark Plugs",
+      material: "Laser-Welded 0.6mm Iridium Center Electrode with Platinum Ground Strap",
+      role: "Discharges 35,000V high-energy electric spark to ignite compressed fuel-air mixture 22° BTDC.",
+      thermodynamics: "Engineered with wide heat-range ceramic insulators to prevent fouling during idle taxiing.",
+      failureModes: "Carbon/oil fouling, electrode gap erosion, secondary coil insulation breakdown causing misfire.",
+      aiMonitoring: "ECU spark timing telemetry (° BTDC) and FFT misfire detection algorithm."
+    },
+    fuelrail: {
+      name: "Electronic Fuel Rail & Direct Micro-Injectors",
+      material: "Stainless Steel High-Pressure Rail with 12-Hole Solenoid Precision Nozzles",
+      role: "Atomizes aviation gasoline (Avgas/Mogas) into 25-micron droplets for complete stoichiometric combustion.",
+      thermodynamics: "Operates at 3.5 bar differential pressure; pulse-width modulated by the onboard engine computer.",
+      failureModes: "Nozzle varnish clogging, solenoid coil short-circuit, fuel rail pressure pulsation.",
+      aiMonitoring: "Fuel flow meter (L/h) and per-cylinder CHT/EGT differential divergence."
+    },
+    lubrication: {
+      name: "Dry Sump Lubrication & Oil Scavenge System",
+      material: "Cast Magnesium Sump with Dual-Stage Trochoid Pressure/Scavenge Pump",
+      role: "Maintains uninterrupted hydrodynamic oil film across all journals under 6-DOF dynamic aircraft G-forces.",
+      thermodynamics: "Pumps synthetic ester aerospace oil through thermostatic cooler maintaining 85°C optimum viscosity.",
+      failureModes: "Scavenge pump cavitation, oil cooler airflow blockage, pressure relief valve sticking.",
+      aiMonitoring: "Oil pressure sensor (PSI), oil temperature sensor (°C), and viscosity degradation index."
+    },
+    ecu: {
+      name: "Dual-Redundant Aerospace ECU & CAN Bus",
+      material: "Automotive/Aero AEC-Q100 Qualified Microcontrollers with Isolated Transceivers",
+      role: "Runs closed-loop ignition timing, injection fuel maps, and broadcasts 500 kbps CAN telemetry.",
+      thermodynamics: "Housed in MIL-STD-810H sealed aluminum enclosure with EMI/RFI shielding.",
+      failureModes: "Sensor reference voltage drift, CAN bus bus-off errors, ignition driver thermal shutdown.",
+      aiMonitoring: "Extended Kalman Filter (EKF) sensor drift isolation and 28V DC avionics bus monitoring."
+    }
+  }
+};
+

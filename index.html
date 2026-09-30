@@ -49,6 +49,7 @@
 
       <!-- Header Telemetry Status Indicators -->
       <div class="header-telemetry">
+        <button class="btn-guide-modal" id="btnOpenGuideModal" title="Interactive Sensors & Engine Components Encyclopedia">📖 SENSORS &amp; ENGINE GUIDE</button>
         <div class="telemetry-chip">
           <span class="pulse-indicator" id="headerPulse"></span>
           <span>CAN BUS: 500 KBPS</span>
@@ -111,22 +112,23 @@
                 </div>
 
                 <!-- 12-Sensor High-Fidelity Health Matrix -->
-                <div style="font-size:9px; color:var(--text-muted); margin-top:7px; font-weight:700; letter-spacing:0.5px;">
-                  12-SENSOR EKF HEALTH MATRIX:
+                <div style="font-size:9px; color:var(--accent-cyan); margin-top:7px; font-weight:700; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
+                  <span>12-SENSOR EKF HEALTH MATRIX:</span>
+                  <span style="font-size:8px; color:var(--text-muted); font-weight:normal;">(Click any for deep info)</span>
                 </div>
                 <div class="sensor-matrix-grid">
-                  <div class="sensor-cell"><div class="sensor-cell-name">CHT 1</div><div class="sensor-cell-stat" id="sc_cht1">92°C</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">CHT 2</div><div class="sensor-cell-stat" id="sc_cht2">95°C</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">CHT 3</div><div class="sensor-cell-stat" id="sc_cht3">93°C</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">CHT 4</div><div class="sensor-cell-stat" id="sc_cht4">91°C</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">EGT</div><div class="sensor-cell-stat" id="sc_egt">620°C</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">MAP</div><div class="sensor-cell-stat" id="sc_map">101k</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">OIL PSI</div><div class="sensor-cell-stat" id="sc_oil_p">45p</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">OIL °C</div><div class="sensor-cell-stat" id="sc_oil_t">82°C</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">FLOW</div><div class="sensor-cell-stat" id="sc_flow">12L</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">BUS 28V</div><div class="sensor-cell-stat" id="sc_bus">28.2</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">PITOT</div><div class="sensor-cell-stat" id="sc_pitot">0kt</div></div>
-                  <div class="sensor-cell"><div class="sensor-cell-name">IMU G</div><div class="sensor-cell-stat" id="sc_imu">0.25</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="cht1" title="Click for CHT Cyl 1 Full Diagnostics"><div class="sensor-cell-name">CHT 1 ℹ️</div><div class="sensor-cell-stat" id="sc_cht1">92°C</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="cht2" title="Click for CHT Cyl 2 Full Diagnostics"><div class="sensor-cell-name">CHT 2 ℹ️</div><div class="sensor-cell-stat" id="sc_cht2">95°C</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="cht3" title="Click for CHT Cyl 3 Full Diagnostics"><div class="sensor-cell-name">CHT 3 ℹ️</div><div class="sensor-cell-stat" id="sc_cht3">93°C</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="cht4" title="Click for CHT Cyl 4 Full Diagnostics"><div class="sensor-cell-name">CHT 4 ℹ️</div><div class="sensor-cell-stat" id="sc_cht4">91°C</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="egt" title="Click for EGT Exhaust Gas Temp Diagnostics"><div class="sensor-cell-name">EGT ℹ️</div><div class="sensor-cell-stat" id="sc_egt">620°C</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="map" title="Click for MAP Manifold Pressure Diagnostics"><div class="sensor-cell-name">MAP ℹ️</div><div class="sensor-cell-stat" id="sc_map">101k</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="oil_p" title="Click for Oil Pressure PSI Diagnostics"><div class="sensor-cell-name">OIL PSI ℹ️</div><div class="sensor-cell-stat" id="sc_oil_p">45p</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="oil_t" title="Click for Oil Temperature Diagnostics"><div class="sensor-cell-name">OIL °C ℹ️</div><div class="sensor-cell-stat" id="sc_oil_t">82°C</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="fuel_flow" title="Click for Fuel Flow Rate Diagnostics"><div class="sensor-cell-name">FLOW ℹ️</div><div class="sensor-cell-stat" id="sc_flow">12L</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="bus_v" title="Click for 28V Avionics Bus Diagnostics"><div class="sensor-cell-name">BUS 28V ℹ️</div><div class="sensor-cell-stat" id="sc_bus">28.2</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="pitot" title="Click for Pitot Airspeed Diagnostics"><div class="sensor-cell-name">PITOT ℹ️</div><div class="sensor-cell-stat" id="sc_pitot">0kt</div></div>
+                  <div class="sensor-cell interactive-sensor" data-sensor="imu_g" title="Click for 3-Axis IMU Vibration Diagnostics"><div class="sensor-cell-name">IMU G ℹ️</div><div class="sensor-cell-stat" id="sc_imu">0.25</div></div>
                 </div>
               </div>
             </div>
@@ -232,6 +234,36 @@
             <div class="viewport-header">
               <span class="viewport-title">Propulsion Digital Twin</span>
               <span class="viewport-badge">4-CYL DOHC CUTAWAY</span>
+              <button class="btn-action primary" id="btnOpenEngineCompModal" style="padding:4px 10px; font-size:11px; height:28px; margin-left:auto; border-radius:4px; font-weight:700;">🔍 ALL PARTS GUIDE</button>
+            </div>
+
+            <!-- Interactive Engine Component Selector Ribbon -->
+            <div class="engine-component-selector">
+              <button class="comp-badge active" data-comp="all">Whole Engine</button>
+              <button class="comp-badge" data-comp="cylinders">Cylinders</button>
+              <button class="comp-badge" data-comp="pistons">Pistons</button>
+              <button class="comp-badge" data-comp="conrods">Connecting Rods</button>
+              <button class="comp-badge" data-comp="crankshaft">Crankshaft</button>
+              <button class="comp-badge" data-comp="valves">DOHC Valves</button>
+              <button class="comp-badge" data-comp="sparkplugs">Spark Plugs</button>
+              <button class="comp-badge" data-comp="fuelrail">Fuel Rail</button>
+              <button class="comp-badge" data-comp="lubrication">Dry Sump</button>
+              <button class="comp-badge" data-comp="ecu">ECU &amp; CAN</button>
+            </div>
+
+            <!-- Floating Component Quick Info Card -->
+            <div id="enginePartFloatingCard" class="engine-part-floating-card" style="display:none;">
+              <div class="part-card-header">
+                <span class="part-title" id="partCardTitle">CYLINDER BLOCK</span>
+                <button class="part-close-btn" id="btnClosePartCard">&times;</button>
+              </div>
+              <div class="part-card-body">
+                <div class="part-prop"><span class="k">Material:</span> <span class="v" id="partCardMaterial">A356-T6 Aluminum</span></div>
+                <div class="part-prop"><span class="k">Role:</span> <span class="v" id="partCardRole">Reciprocating Piston containment</span></div>
+                <div class="part-prop"><span class="k">Failure Mode:</span> <span class="v" id="partCardFailure">Liner scoring &amp; head warpage</span></div>
+                <div class="part-prop"><span class="k">AI Health Check:</span> <span class="v" id="partCardHealth" style="color:var(--accent-neon-green);">NOMINAL (99.8%)</span></div>
+              </div>
+              <button class="btn-action primary" id="btnPartCardDeepDive" style="width:100%; margin-top:6px; font-size:10px; height:24px;">📖 Full Technical Specs</button>
             </div>
           </div>
         </div>
@@ -724,6 +756,86 @@
 
     </main>
 
+  </div>
+
+  <!-- ====================================================================
+       INTERACTIVE SENSORS & ENGINE KNOWLEDGE ENCYCLOPEDIA MODAL
+       ==================================================================== -->
+  <div id="uavGuideModal" class="guide-modal-overlay" style="display:none;">
+    <div class="guide-modal-container">
+      <div class="guide-modal-header">
+        <div class="guide-modal-title">
+          <span class="guide-icon">📚</span>
+          <div>
+            <h3>UAV Propulsion &amp; Telemetry Knowledge Encyclopedia</h3>
+            <p>Certified Rotax 914 Turbo &bull; DRDO-Grade Edge PHM Digital Twin &bull; 12-Sensor EKF Architecture</p>
+          </div>
+        </div>
+        <button id="btnCloseGuideModal" class="guide-close-btn" title="Close Encyclopedia">&times;</button>
+      </div>
+
+      <!-- Modal Category Tabs -->
+      <div class="guide-modal-tabs">
+        <button class="guide-tab-btn active" data-guide-tab="sensors">📡 12-Sensor Telemetry Suite</button>
+        <button class="guide-tab-btn" data-guide-tab="components">⚙️ 3D Engine Cutaway Parts</button>
+        <button class="guide-tab-btn" data-guide-tab="pilot">✈️ Flight Operations Manual</button>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="guide-search-bar">
+        <input type="text" id="guideSearchInput" placeholder="🔍 Search sensors or engine parts (e.g. CHT, Oil, Crankshaft, Spark, EKF)..." />
+        <span id="guideCountBadge" class="guide-count-badge">12 Sensors &bull; 9 Engine Parts</span>
+      </div>
+
+      <!-- Tab 1: Sensors Body -->
+      <div class="guide-tab-content active" id="guideSensorsTab">
+        <div class="guide-cards-grid" id="guideSensorsGrid">
+          <!-- Populated dynamically via JS with live values -->
+        </div>
+      </div>
+
+      <!-- Tab 2: Components Body -->
+      <div class="guide-tab-content" id="guideComponentsTab" style="display:none;">
+        <div class="guide-cards-grid" id="guideComponentsGrid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Tab 3: Flight & Pilot Manual Body -->
+      <div class="guide-tab-content" id="guidePilotTab" style="display:none;">
+        <div class="pilot-manual-container">
+          <div class="manual-section">
+            <h4>🛫 1. Realistic Takeoff Sequence (Runway Spool &amp; Climb)</h4>
+            <p>The aircraft is positioned on the runway centerline with brakes engaged and throttle at idle (0%).</p>
+            <ul>
+              <li><strong>One-Key Auto Takeoff (<kbd>T</kbd>):</strong> Automatically starts the Rotax 914 engine, spools throttle to 100% full takeoff power, rolls down the runway until rotating at 24 knots, lifts off, auto-retracts the landing gear, and climbs at +22 m/s to 95 meters cruising altitude (safely above all city skyscrapers).</li>
+              <li><strong>Manual Pilot Takeoff (<kbd>W</kbd> or <kbd>Space</kbd>):</strong> Pressing <kbd>W</kbd> or <kbd>Space</kbd> on the ground automatically engages takeoff power and rolls forward. Pull back to rotate smoothly once 24 knots is reached.</li>
+            </ul>
+          </div>
+          <div class="manual-section">
+            <h4>🕹️ 2. In-Flight Fly-By-Wire Controls</h4>
+            <ul>
+              <li><kbd>W</kbd> / <kbd>Arrow Up</kbd> / <kbd>Space</kbd>: Pitch Up &amp; Climb (+24 m/s climb rate).</li>
+              <li><kbd>S</kbd> / <kbd>Arrow Down</kbd>: Pitch Down &amp; Controlled Descent (-18 m/s).</li>
+              <li><kbd>A</kbd> / <kbd>D</kbd> or <kbd>Arrow Left/Right</kbd>: Coordinated Banking Turn with realistic wing roll and compass heading change. Fly-by-wire automatically returns wings level when stick is released.</li>
+              <li><kbd>Q</kbd> / <kbd>E</kbd>: Rudder Yaw Trim for crosswind correction.</li>
+              <li><kbd>Shift</kbd> / <kbd>Ctrl</kbd>: Throttle Up / Throttle Down (0% to 100%).</li>
+              <li><kbd>L</kbd>: Automated Assisted Runway Landing with landing gear deployment and touchdown flare.</li>
+            </ul>
+          </div>
+          <div class="manual-section">
+            <h4>🧠 3. Digital Twin &amp; Predictive Health Monitoring (PHM)</h4>
+            <p>The Physics-Informed Neural Network (PINN) and Extended Kalman Filter (EKF) fuse all 12 telemetry sensors in real time:</p>
+            <ul>
+              <li><strong>Thermal Integrity:</strong> Monitors CHT 1-4 and EGT to detect pre-ignition and valve thermal runaway before head gasket breach.</li>
+              <li><strong>Hydrodynamic Lubrication:</strong> Tracks oil pressure PSI, oil temperature, and kinematic viscosity index to forecast bearing wear before crankshaft wiping occurs.</li>
+              <li><strong>Fault Injections:</strong> Use the sidebar buttons to test simulated cylinder misfire, turbo overpressure boost, or oil puncture and watch the AI predict time-to-failure in real time!</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- Three.js r128 Library for High-Performance WebGL Graphics -->

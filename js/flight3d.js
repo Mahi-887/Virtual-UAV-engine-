@@ -57,7 +57,7 @@ class Flight3DViewer {
     this.autoTakeoff = {
       active: false,
       stage: 'idle', // 'spool', 'roll', 'rotate', 'climb'
-      targetY: 85.0  // Cruising height (well above the skyscrapers!)
+      targetY: 95.0  // Cruising height (well above the skyscrapers!)
     };
 
     this.takeoffCooldown = 0;
@@ -351,8 +351,8 @@ class Flight3DViewer {
 
     for (let gx = -HALF_DIM; gx <= HALF_DIM; gx++) {
       for (let gz = -HALF_DIM; gz <= HALF_DIM; gz++) {
-        // Skyscraper Tower Mesh
-        const height = 30 + Math.random() * 65 + (Math.random() < 0.3 ? Math.random() * 45 : 0);
+        // Skyscraper Tower Mesh (Capped so UAV cruises smoothly above skyline)
+        const height = 22 + Math.random() * 38 + (Math.random() < 0.2 ? Math.random() * 16 : 0);
         const width = 18 + Math.random() * 12;
         const depth = 18 + Math.random() * 12;
 
@@ -748,11 +748,11 @@ class Flight3DViewer {
     if (this.autoTakeoff.active) {
       window.physicsMLEngine.state.throttlePct = 100;
       if (this.flightState.onGround) {
-        if (this.flightState.airspeedKt > 30) {
+        if (this.flightState.airspeedKt > 24) {
           // Rotate & lift off
           this.flightState.onGround = false;
           this.flightState.gearRetracted = true;
-          this.flightState.pitchRad = 0.25;
+          this.flightState.pitchRad = 0.26;
           this.flightState.position.y = 2.5;
           this.takeoffCooldown = 15.0;
           this.autoTakeoff.stage = 'climb';
@@ -761,10 +761,10 @@ class Flight3DViewer {
           }
         }
       } else {
-        // Airborne climb to target altitude above the skyscrapers (y = 85)
+        // Airborne climb to target altitude above the skyscrapers (y = 95)
         if (this.flightState.position.y < this.autoTakeoff.targetY) {
           this.flightState.pitchRad = 0.28; // Strong positive climb angle
-          this.flightState.position.y += 18.0 * dt; // Rapid, powerful climb up above the buildings!
+          this.flightState.position.y += 22.0 * dt; // Rapid, powerful climb up above the buildings!
         } else {
           // Level off smoothly above the city
           this.flightState.pitchRad = 0.01;
@@ -799,6 +799,11 @@ class Flight3DViewer {
         pitchInput -= 1.0; // Dive / Pitch Down
       }
 
+      // Auto-spool throttle on ground when pilot pulls back stick / presses W / Space
+      if (this.flightState.onGround && pitchInput > 0) {
+        window.physicsMLEngine.state.throttlePct = 100;
+      }
+
       // Responsive climb / descent authority
       if (!this.autoTakeoff.active && !this.flightState.onGround) {
         if (this.landingApproach) {
@@ -816,14 +821,14 @@ class Flight3DViewer {
         } else if (pitchInput > 0) {
           // Direct powerful climb up above every skyscraper!
           this.flightState.pitchRad = Math.min(0.42, this.flightState.pitchRad + 1.2 * dt);
-          this.flightState.position.y = Math.min(380, this.flightState.position.y + 22.0 * dt);
+          this.flightState.position.y = Math.min(380, this.flightState.position.y + 24.0 * dt);
         } else if (pitchInput < 0) {
           // Responsive descent
           this.flightState.pitchRad = Math.max(-0.35, this.flightState.pitchRad - 1.2 * dt);
           this.flightState.position.y = Math.max(0.42, this.flightState.position.y - 18.0 * dt);
         } else {
           // FLY-BY-WIRE AUTO-LEVEL: Returns gently to horizontal cruise
-          this.flightState.pitchRad += (0.01 - this.flightState.pitchRad) * Math.min(1, dt * 3.0);
+          this.flightState.pitchRad += (0.012 - this.flightState.pitchRad) * Math.min(1, dt * 3.0);
         }
       }
 
@@ -867,10 +872,10 @@ class Flight3DViewer {
     // --- 4. AIRSPEED & AERODYNAMIC ACCELERATION ---
     const throttleRatio = throttlePct / 100;
     const targetAirspeed = engineRunning ? (throttleRatio * 85) : 0;
-    this.flightState.airspeedKt += (targetAirspeed - this.flightState.airspeedKt) * Math.min(1, dt * 1.6);
+    this.flightState.airspeedKt += (targetAirspeed - this.flightState.airspeedKt) * Math.min(1, dt * 1.8);
 
     // Manual Ground Rotation Takeoff
-    if (this.flightState.onGround && this.flightState.airspeedKt > 30 && (pitchInput > 0 || this.flightState.pitchRad > 0.05)) {
+    if (this.flightState.onGround && this.flightState.airspeedKt > 24 && (pitchInput > 0 || this.flightState.pitchRad > 0.05)) {
       this.flightState.onGround = false;
       this.flightState.gearRetracted = true;
       this.flightState.position.y = 2.5;

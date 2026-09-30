@@ -36,6 +36,9 @@ class DashboardController {
     // Setup Event Listeners
     this.bindEvents();
 
+    // Setup Interactive Sensors & Engine Knowledge Encyclopedia
+    this.setupKnowledgeEncyclopedia();
+
     // Start Real-Time Animation Loop
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.mainLoop(t));
@@ -1265,6 +1268,190 @@ state.anomalyScore > 0.3 ?
     a.click();
     URL.revokeObjectURL(url);
     this.showAlert("Executive Mission Report downloaded successfully.", "info");
+  }
+
+  // ==========================================================================
+  // INTERACTIVE SENSORS & ENGINE KNOWLEDGE ENCYCLOPEDIA CONTROLLER
+  // ==========================================================================
+  setupKnowledgeEncyclopedia() {
+    const modal = document.getElementById('uavGuideModal');
+    const btnOpenGuide = document.getElementById('btnOpenGuideModal');
+    const btnOpenEngineComp = document.getElementById('btnOpenEngineCompModal');
+    const btnCloseGuide = document.getElementById('btnCloseGuideModal');
+    const guideTabs = document.querySelectorAll('.guide-tab-btn');
+    const searchInput = document.getElementById('guideSearchInput');
+    const sensorsGrid = document.getElementById('guideSensorsGrid');
+    const compGrid = document.getElementById('guideComponentsGrid');
+    const partCard = document.getElementById('enginePartFloatingCard');
+    const btnClosePartCard = document.getElementById('btnClosePartCard');
+    const btnPartCardDeepDive = document.getElementById('btnPartCardDeepDive');
+    const compBadges = document.querySelectorAll('.comp-badge');
+    const interactiveSensors = document.querySelectorAll('.interactive-sensor');
+
+    if (!modal) return;
+
+    let activePartId = 'cylinders';
+
+    const openGuideModal = (tabName = 'sensors', targetId = null) => {
+      modal.style.display = 'flex';
+      switchGuideTab(tabName);
+      if (targetId) {
+        setTimeout(() => {
+          const card = document.getElementById(`card_${targetId}`);
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.borderColor = 'var(--accent-cyan)';
+            card.style.boxShadow = '0 0 25px rgba(0, 240, 255, 0.6)';
+            setTimeout(() => {
+              card.style.borderColor = '';
+              card.style.boxShadow = '';
+            }, 2500);
+          }
+        }, 150);
+      }
+    };
+
+    const closeGuideModal = () => {
+      modal.style.display = 'none';
+    };
+
+    const switchGuideTab = (tabName) => {
+      guideTabs.forEach(t => {
+        t.classList.toggle('active', t.dataset.guideTab === tabName);
+      });
+      const tabSensors = document.getElementById('guideSensorsTab');
+      const tabComps = document.getElementById('guideComponentsTab');
+      const tabPilot = document.getElementById('guidePilotTab');
+      if (tabSensors) tabSensors.style.display = (tabName === 'sensors') ? 'block' : 'none';
+      if (tabComps) tabComps.style.display = (tabName === 'components') ? 'block' : 'none';
+      if (tabPilot) tabPilot.style.display = (tabName === 'pilot') ? 'block' : 'none';
+    };
+
+    if (btnOpenGuide) btnOpenGuide.addEventListener('click', () => openGuideModal('sensors'));
+    if (btnOpenEngineComp) btnOpenEngineComp.addEventListener('click', () => openGuideModal('components'));
+    if (btnCloseGuide) btnCloseGuide.addEventListener('click', closeGuideModal);
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeGuideModal();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'flex') {
+        closeGuideModal();
+      }
+    });
+
+    guideTabs.forEach(t => {
+      t.addEventListener('click', () => switchGuideTab(t.dataset.guideTab));
+    });
+
+    // Populate Sensors Encyclopedia Cards
+    const kb = window.uavKnowledgeBase || {};
+    if (sensorsGrid && kb.sensors) {
+      sensorsGrid.innerHTML = '';
+      for (const [key, s] of Object.entries(kb.sensors)) {
+        const card = document.createElement('div');
+        card.className = 'guide-card';
+        card.id = `card_${key}`;
+        card.dataset.name = `${s.name} ${s.category} ${s.code} ${s.techType}`.toLowerCase();
+        card.innerHTML = `
+          <div class="guide-card-top">
+            <span class="guide-card-name">${s.name}</span>
+            <span class="guide-card-badge">${s.code}</span>
+          </div>
+          <div class="guide-card-desc"><strong>Sensor Type:</strong> ${s.techType}<br><strong>Role:</strong> ${s.role}</div>
+          <div class="guide-card-row"><span class="k">Subsystem Category:</span><span class="v">${s.category}</span></div>
+          <div class="guide-card-row"><span class="k">Certified Safe Envelope:</span><span class="v" style="color:var(--accent-neon-green);">${s.normalRange}</span></div>
+          <div class="guide-card-row"><span class="k">Advisory Warning Threshold:</span><span class="v" style="color:var(--accent-amber);">${s.warningRange}</span></div>
+          <div class="guide-card-row"><span class="k">Critical Failure Threshold:</span><span class="v" style="color:var(--accent-danger);">${s.criticalRange}</span></div>
+          <div class="guide-card-callout danger"><strong>⚠️ Risk if Failed:</strong> ${s.failureImpact}</div>
+          <div class="guide-card-callout ok"><strong>🧠 PINN &amp; EKF AI Fusion:</strong> ${s.howAiUsesIt}</div>
+        `;
+        sensorsGrid.appendChild(card);
+      }
+    }
+
+    // Populate Engine Cutaway Components Cards
+    if (compGrid && kb.components) {
+      compGrid.innerHTML = '';
+      for (const [key, c] of Object.entries(kb.components)) {
+        const card = document.createElement('div');
+        card.className = 'guide-card';
+        card.id = `card_${key}`;
+        card.dataset.name = `${c.name} ${c.material} ${c.role}`.toLowerCase();
+        card.innerHTML = `
+          <div class="guide-card-top">
+            <span class="guide-card-name">${c.name}</span>
+            <span class="guide-card-badge">ROTAX 914</span>
+          </div>
+          <div class="guide-card-desc"><strong>Aerospace Material:</strong> ${c.material}<br><strong>Function:</strong> ${c.role}</div>
+          <div class="guide-card-row"><span class="k">Thermodynamic Physics:</span><span class="v">${c.thermodynamics}</span></div>
+          <div class="guide-card-callout danger"><strong>⚠️ Common Failure Modes:</strong> ${c.failureModes}</div>
+          <div class="guide-card-callout ok"><strong>🧠 AI Prognostic Monitoring:</strong> ${c.aiMonitoring}</div>
+        `;
+        compGrid.appendChild(card);
+      }
+    }
+
+    // Search Filter
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const allCards = modal.querySelectorAll('.guide-card');
+        allCards.forEach(card => {
+          const text = card.dataset.name || '';
+          card.style.display = text.includes(query) ? 'flex' : 'none';
+        });
+      });
+    }
+
+    // Click on 12 EKF Matrix sensor cells opens deep info
+    interactiveSensors.forEach(cell => {
+      cell.addEventListener('click', () => {
+        const sensorKey = cell.dataset.sensor;
+        if (sensorKey) openGuideModal('sensors', sensorKey);
+      });
+    });
+
+    // Engine Cutaway Component Badges
+    compBadges.forEach(badge => {
+      badge.addEventListener('click', () => {
+        compBadges.forEach(b => b.classList.remove('active'));
+        badge.classList.add('active');
+        const compId = badge.dataset.comp;
+        activePartId = compId;
+
+        if (this.engineViewer && this.engineViewer.highlightComponent) {
+          this.engineViewer.highlightComponent(compId);
+        }
+
+        if (compId === 'all' || !partCard) {
+          if (partCard) partCard.style.display = 'none';
+          return;
+        }
+
+        const info = kb.components ? kb.components[compId] : null;
+        if (info && partCard) {
+          document.getElementById('partCardTitle').textContent = info.name.toUpperCase();
+          document.getElementById('partCardMaterial').textContent = info.material;
+          document.getElementById('partCardRole').textContent = info.role;
+          document.getElementById('partCardFailure').textContent = info.failureModes;
+          partCard.style.display = 'block';
+        }
+      });
+    });
+
+    if (btnClosePartCard && partCard) {
+      btnClosePartCard.addEventListener('click', () => {
+        partCard.style.display = 'none';
+      });
+    }
+
+    if (btnPartCardDeepDive) {
+      btnPartCardDeepDive.addEventListener('click', () => {
+        openGuideModal('components', activePartId);
+      });
+    }
   }
 }
 

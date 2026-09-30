@@ -567,6 +567,31 @@ class Engine3DViewer {
     this.canSensors.vib.led.material.color.setHex(vibStatus);
   }
 
+  highlightComponent(compId) {
+    if (!this.camera) return;
+    if (compId === 'cylinders') {
+      this.camera.position.set(0, 3.2, 3.8);
+      if (this.cylinderHeads) {
+        this.cylinderHeads.forEach(h => {
+          h.material.emissive.setHex(0x00f0ff);
+          h.material.emissiveIntensity = 0.6;
+          setTimeout(() => { if (h.material) { h.material.emissive.setHex(0x000000); h.material.emissiveIntensity = 0; } }, 2000);
+        });
+      }
+    } else if (compId === 'pistons' || compId === 'conrods') {
+      this.camera.position.set(0, 1.4, 4.2);
+    } else if (compId === 'valves' || compId === 'sparkplugs') {
+      this.camera.position.set(0, 3.8, 3.2);
+    } else if (compId === 'crankshaft' || compId === 'lubrication') {
+      this.camera.position.set(0, -0.4, 4.5);
+    } else if (compId === 'fuelrail' || compId === 'ecu') {
+      this.camera.position.set(2.5, 2.2, 4.2);
+    } else {
+      this.camera.position.set(0, 2.5, 5.5);
+    }
+    this.camera.lookAt(0, 0.25, 0);
+  }
+
   onResize() {
     if (!this.container) return;
     const w = this.container.clientWidth || 500;

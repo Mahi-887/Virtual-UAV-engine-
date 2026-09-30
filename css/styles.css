@@ -1423,5 +1423,455 @@ input[type="range"].custom-slider {
   color: #fff;
 }
 
+/* ==========================================================================
+   INTERACTIVE SENSORS & ENGINE KNOWLEDGE ENCYCLOPEDIA STYLES
+   ========================================================================== */
+
+/* Header Guide Button */
+.btn-guide-modal {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.18), rgba(59, 130, 246, 0.25));
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-guide-modal:hover {
+  background: var(--accent-cyan);
+  color: #08090d;
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Interactive Sensor Cells in 12-Sensor Grid */
+.sensor-cell.interactive-sensor {
+  cursor: pointer;
+  transition: all 0.18s ease;
+  position: relative;
+}
+
+.sensor-cell.interactive-sensor:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.14);
+  transform: scale(1.04);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+/* Engine Component Selector Ribbon inside engineViewport */
+.engine-component-selector {
+  position: absolute;
+  top: 48px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.engine-component-selector::-webkit-scrollbar {
+  height: 3px;
+}
+
+.comp-badge {
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.comp-badge:hover {
+  border-color: var(--accent-cyan);
+  color: #fff;
+  background: rgba(0, 240, 255, 0.15);
+}
+
+.comp-badge.active {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: #08090d;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
+/* Floating Part Info Card inside 3D Viewport */
+.engine-part-floating-card {
+  position: absolute;
+  bottom: 20px;
+  left: 18px;
+  width: 280px;
+  background: rgba(12, 16, 24, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--accent-cyan);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  z-index: 25;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.2);
+  animation: fadeInQuick 0.2s ease-out;
+}
+
+@keyframes fadeInQuick {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.part-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.part-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  letter-spacing: 0.5px;
+}
+
+.part-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.part-close-btn:hover {
+  color: #fff;
+}
+
+.part-card-body .part-prop {
+  font-size: 10.5px;
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+
+.part-prop .k {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.part-prop .v {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Full Encyclopedia Modal Overlay */
+.guide-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 10, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeInQuick 0.25s ease-out;
+}
+
+.guide-modal-container {
+  width: 100%;
+  max-width: 1040px;
+  max-height: 88vh;
+  background: #0f131c;
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 240, 255, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.guide-modal-header {
+  padding: 16px 22px;
+  background: rgba(18, 24, 36, 0.95);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guide-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.guide-modal-title .guide-icon {
+  font-size: 26px;
+}
+
+.guide-modal-title h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.guide-modal-title p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.guide-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.guide-close-btn:hover {
+  background: var(--accent-danger);
+  border-color: var(--accent-danger);
+  color: #fff;
+}
+
+/* Modal Tabs */
+.guide-modal-tabs {
+  display: flex;
+  background: rgba(12, 16, 24, 0.95);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 20px;
+  gap: 8px;
+}
+
+.guide-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guide-tab-btn:hover {
+  color: #fff;
+}
+
+.guide-tab-btn.active {
+  color: var(--accent-cyan);
+  border-bottom-color: var(--accent-cyan);
+}
+
+/* Search Bar */
+.guide-search-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 22px;
+  background: rgba(15, 20, 30, 0.6);
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 15px;
+}
+
+.guide-search-bar input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  padding: 7px 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.guide-search-bar input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+.guide-count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-neon-green);
+  background: rgba(0, 255, 136, 0.1);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  white-space: nowrap;
+}
+
+/* Tab Content Scroll Container */
+.guide-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px;
+}
+
+.guide-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 14px;
+}
+
+/* Individual Knowledge Card */
+.guide-card {
+  background: rgba(22, 28, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.guide-card:hover {
+  border-color: var(--border-active);
+  background: rgba(26, 34, 52, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.guide-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.guide-card-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  line-height: 1.3;
+}
+
+.guide-card-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--accent-cyan);
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.guide-card-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.guide-card-row {
+  font-size: 10.5px;
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.guide-card-row .k {
+  color: var(--text-muted);
+}
+
+.guide-card-row .v {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.guide-card-callout {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.35);
+  border-left: 3px solid var(--accent-cyan);
+  color: #cbd5e1;
+}
+
+.guide-card-callout.danger {
+  border-left-color: var(--accent-danger);
+  background: rgba(255, 51, 85, 0.08);
+}
+
+.guide-card-callout.ok {
+  border-left-color: var(--accent-neon-green);
+  background: rgba(0, 255, 136, 0.08);
+}
+
+/* Pilot Manual Section Styles */
+.pilot-manual-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.manual-section {
+  background: rgba(22, 28, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.manual-section h4 {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  margin-bottom: 10px;
+}
+
+.manual-section p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.manual-section ul {
+  padding-left: 20px;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.manual-section kbd {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent-cyan);
+}
+
+
 
 
