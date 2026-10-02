@@ -765,37 +765,7 @@ input[type="range"].custom-slider {
   display: flex !important;
 }
 
-/* 3D Engine Inspector Tab */
-#tab-engine-inspector.active {
-  display: flex !important;
-  width: 100% !important;
-  height: 100% !important;
-  padding: 16px;
-  gap: 16px;
-  overflow: hidden;
-}
-
-.inspector-viewport {
-  flex: 1;
-  min-width: 0;
-  background: #000;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  position: relative;
-  overflow: hidden;
-}
-.inspector-sidebar {
-  width: 380px;
-  flex-shrink: 0;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-}
+/* 3D Engine Inspector Tab styles are defined in the dedicated Cyber Studio section */
 
 /* AI / ML Analytics Tab Layout */
 #tab-ai-diagnostics.active {
@@ -1870,6 +1840,695 @@ input[type="range"].custom-slider {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--accent-cyan);
+}
+
+/* ==========================================================================
+   HOLOGRAPHIC 3D ENGINE & CYBER ANALYSING WINDOW STUDIO (INSPIRED BY REFERENCE)
+   ========================================================================== */
+
+#tab-engine-inspector.active {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 10px 14px;
+  gap: 10px;
+  overflow: hidden;
+  background: radial-gradient(circle at 60% 30%, #0d1424 0%, #050811 80%);
+}
+
+/* Top Sci-Fi Navigation Header */
+.insp-hud-topbar {
+  height: 48px;
+  min-height: 48px;
+  background: rgba(10, 15, 25, 0.94);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  z-index: 30;
+}
+
+.hud-brand-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hud-brand-logo {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1px;
+}
+.hud-brand-logo .accent-dot {
+  color: var(--accent-cyan);
+  text-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.hud-search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 4px 12px;
+  height: 30px;
+}
+.hud-search-field input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  font-family: var(--font-sans);
+  outline: none;
+  width: 150px;
+}
+.hud-search-field input::placeholder {
+  color: var(--text-muted);
+}
+.hud-search-icon {
+  font-size: 12px;
+  color: var(--accent-cyan);
+}
+
+.hud-center-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-pill {
+  background: rgba(18, 24, 38, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.hud-pill:hover {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-cyan);
+  color: #fff;
+}
+.hud-pill.active {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(59, 130, 246, 0.25));
+  border-color: var(--accent-cyan);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.35);
+}
+
+.hud-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-icon-btn {
+  background: rgba(18, 24, 38, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.hud-icon-btn:hover, .hud-icon-btn.active {
+  background: var(--accent-cyan);
+  color: #050b14;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
+/* Studio Workspace Grid */
+.insp-main-studio {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Left Cyber Analysing Window */
+.analysing-window {
+  width: 360px;
+  min-width: 340px;
+  height: 100%;
+  background: rgba(8, 13, 22, 0.94);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 240, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow-y: auto;
+  z-index: 25;
+}
+
+.aw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.aw-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.aw-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+.aw-badge {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.12);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.aw-status-dot.pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-neon-green);
+  box-shadow: 0 0 10px var(--accent-neon-green);
+  animation: pulseGlow 1.8s infinite;
+}
+
+/* Analysing Window Cards */
+.aw-card {
+  background: rgba(14, 20, 32, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+.aw-card:hover {
+  border-color: rgba(0, 240, 255, 0.35);
+}
+.aw-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.aw-card-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+.aw-card-tag {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+.aw-card-tag.cyan {
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--accent-cyan);
+}
+.aw-card-tag.amber {
+  background: rgba(255, 170, 0, 0.15);
+  color: var(--accent-amber);
+}
+
+/* 1. Semicircular Radial Gauge */
+.aw-radial-gauge-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.aw-radial-svg {
+  width: 100%;
+  max-width: 210px;
+  height: 110px;
+  max-height: 110px;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.2));
+}
+.aw-radial-data {
+  text-align: center;
+  margin-top: -24px;
+  z-index: 2;
+}
+.aw-radial-big {
+  font-size: 24px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #fff;
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+.aw-radial-big small {
+  font-size: 11px;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+.aw-radial-sub {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+.aw-radial-sub strong {
+  color: #fff;
+}
+
+/* 2. Circular Health & Matrix */
+.aw-health-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.aw-circular-dial {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  flex-shrink: 0;
+}
+.aw-circ-svg {
+  width: 70px;
+  height: 70px;
+  display: block;
+  transform: rotate(-90deg);
+  filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));
+}
+.aw-circ-num {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+.aw-health-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aw-hbar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.aw-hbar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.aw-hbar-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.aw-hbar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.aw-hbar-fill.cyan {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+.aw-hbar-fill.green {
+  background: var(--accent-neon-green);
+  box-shadow: 0 0 6px var(--accent-neon-green);
+}
+.aw-hbar-fill.amber {
+  background: var(--accent-amber);
+  box-shadow: 0 0 6px var(--accent-amber);
+}
+
+/* 3. Equalizer Histogram Spectrum */
+.aw-spectrum-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 88px;
+  padding-top: 4px;
+}
+.aw-spectrum-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  font-size: 8.5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.aw-spectrum-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 3.5px;
+  height: 100%;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.aw-sbar {
+  flex: 1;
+  background: linear-gradient(to top, rgba(0, 240, 255, 0.25), rgba(0, 240, 255, 0.85));
+  border-radius: 2px 2px 0 0;
+  position: relative;
+  min-height: 4px;
+  transition: height 0.15s ease;
+}
+.aw-sbar:nth-child(even) {
+  background: linear-gradient(to top, rgba(255, 170, 0, 0.25), rgba(255, 170, 0, 0.85));
+}
+.aw-sbar .bar-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #fff;
+  box-shadow: 0 0 6px #fff;
+}
+.aw-spectrum-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8.5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+/* 4. Component Focus Navigator */
+.aw-comp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+}
+.aw-comp-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 5px 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.aw-comp-btn:hover, .aw-comp-btn.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-cyan);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.25);
+}
+
+/* 5. CHT Per-Cylinder Matrix */
+.aw-cht-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-align: center;
+}
+.aw-cht-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 4px 2px;
+}
+.aw-cht-cell .cyl-label {
+  color: var(--text-muted);
+  display: block;
+  font-size: 8.5px;
+}
+.aw-cht-cell .cyl-temp {
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+/* Inspector Viewport (Right Area for 3D Hologram + Floating HUD Cards) */
+.inspector-viewport {
+  flex: 1;
+  min-width: 0;
+  background: radial-gradient(circle at 50% 50%, #0c1220 0%, #05070e 100%);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.8);
+}
+
+/* ==========================================================================
+   FLOATING 3D HOLOGRAPHIC CALLOUT HUD CARDS & LEADER LINES
+   ========================================================================== */
+
+.engine-holo-hud-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 12;
+  overflow: hidden;
+}
+
+.holo-svg-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(0, 240, 255, 0.75));
+}
+
+.holo-cards-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.holo-hud-card {
+  position: absolute;
+  background: rgba(6, 11, 20, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.18), inset 0 0 10px rgba(0, 240, 255, 0.04);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  pointer-events: auto;
+  z-index: 15;
+  transition: opacity 0.2s, transform 0.2s;
+  min-width: 140px;
+}
+
+.holo-hud-card:hover {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
+}
+
+/* Individual Positioning of Floating Cards */
+#card-thermal-core {
+  top: 20px;
+  left: 38%;
+  transform: translateX(-50%);
+  min-width: 190px;
+}
+
+#card-cyl-pressure {
+  top: 28%;
+  left: 24px;
+}
+
+#card-core-temp {
+  top: 46%;
+  left: 24px;
+}
+
+#card-oil-pressure {
+  top: 64%;
+  left: 24px;
+}
+
+#card-rotor-pressure {
+  bottom: 24px;
+  left: 36px;
+  border-color: rgba(255, 170, 0, 0.5);
+  box-shadow: 0 0 20px rgba(255, 170, 0, 0.2);
+}
+
+#card-ai-score {
+  top: 20px;
+  right: 24px;
+  border-color: rgba(0, 255, 136, 0.5);
+}
+
+#card-digital-twin {
+  bottom: 24px;
+  right: 24px;
+}
+
+/* Card Internal Components */
+.h-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.h-card-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.h-card-tag.amber {
+  color: var(--accent-amber);
+}
+.h-card-tag.neon {
+  color: var(--accent-neon-green);
+}
+.h-card-sub {
+  font-size: 8px;
+  color: var(--text-muted);
+}
+.h-card-icon {
+  font-size: 11px;
+}
+
+.h-card-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  margin-top: 2px;
+}
+.h-card-lbl {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+.h-card-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+.h-card-val.accent {
+  color: var(--accent-cyan);
+}
+.h-card-unit {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.h-row-dual {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.h-mini-gauge-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.h-mini-circle {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.h-mini-gauge-text {
+  position: absolute;
+  top: 11px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+}
+.h-mini-label {
+  font-size: 7.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.h-bar-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 4px 0;
+}
+.h-bar-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.h-bar-fill.amber {
+  height: 100%;
+  background: #ffaa00;
+  box-shadow: 0 0 6px #ffaa00;
+}
+.h-bar-fill.cyan {
+  height: 100%;
+  background: #00f0ff;
+  box-shadow: 0 0 6px #00f0ff;
+}
+
+.h-spark-canvas-wrap {
+  margin-top: 4px;
+}
+.h-spark-canvas-wrap canvas {
+  display: block;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
 }
 
 

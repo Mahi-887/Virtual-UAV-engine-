@@ -552,6 +552,131 @@ class DashboardController {
         }
       });
     }
+
+    // 11. Holographic 3D Engine & Cyber Analysing Studio Controls
+    this.bindEngineStudioControls();
+  }
+
+  bindEngineStudioControls() {
+    // Mode Switching: Holographic Cyber, Realistic Solid, Thermal PINN Heatmap
+    const setInspectorMode = (mode) => {
+      if (this.inspectorViewer) this.inspectorViewer.setRenderMode(mode);
+      const btnMap = { holographic: 'btnModeHolo', solid: 'btnModeSolid', thermal: 'btnModeThermal' };
+      Object.keys(btnMap).forEach(m => {
+        const btn = document.getElementById(btnMap[m]);
+        if (btn) btn.classList.toggle('active', m === mode);
+      });
+    };
+
+    const btnHolo = document.getElementById('btnModeHolo');
+    if (btnHolo) btnHolo.addEventListener('click', () => setInspectorMode('holographic'));
+
+    const btnSolid = document.getElementById('btnModeSolid');
+    if (btnSolid) btnSolid.addEventListener('click', () => setInspectorMode('solid'));
+
+    const btnThermal = document.getElementById('btnModeThermal');
+    if (btnThermal) btnThermal.addEventListener('click', () => setInspectorMode('thermal'));
+
+    // Overview Viewport Mode Switch Buttons
+    const btnHoloOv = document.getElementById('btnHoloOverview');
+    if (btnHoloOv) {
+      btnHoloOv.addEventListener('click', () => {
+        if (this.engineViewer) this.engineViewer.setRenderMode('holographic');
+        btnHoloOv.className = 'btn-action primary';
+        const s = document.getElementById('btnSolidOverview'); if (s) s.className = 'btn-action';
+        const t = document.getElementById('btnThermalOverview'); if (t) t.className = 'btn-action';
+        const b = document.getElementById('overviewEngineBadge'); if (b) b.textContent = '🔮 HOLOGRAPHIC TWIN';
+      });
+    }
+
+    const btnSolidOv = document.getElementById('btnSolidOverview');
+    if (btnSolidOv) {
+      btnSolidOv.addEventListener('click', () => {
+        if (this.engineViewer) this.engineViewer.setRenderMode('solid');
+        btnSolidOv.className = 'btn-action primary';
+        const h = document.getElementById('btnHoloOverview'); if (h) h.className = 'btn-action';
+        const t = document.getElementById('btnThermalOverview'); if (t) t.className = 'btn-action';
+        const b = document.getElementById('overviewEngineBadge'); if (b) b.textContent = '⚙️ SOLID CUTAWAY';
+      });
+    }
+
+    const btnThermalOv = document.getElementById('btnThermalOverview');
+    if (btnThermalOv) {
+      btnThermalOv.addEventListener('click', () => {
+        if (this.engineViewer) this.engineViewer.setRenderMode('thermal');
+        btnThermalOv.className = 'btn-action primary';
+        const h = document.getElementById('btnHoloOverview'); if (h) h.className = 'btn-action';
+        const s = document.getElementById('btnSolidOverview'); if (s) s.className = 'btn-action';
+        const b = document.getElementById('overviewEngineBadge'); if (b) b.textContent = '🔥 PINN HEATMAP';
+      });
+    }
+
+    // Wireframe Toggle
+    const btnWire = document.getElementById('btnToggleWireframe');
+    if (btnWire) {
+      btnWire.addEventListener('click', () => {
+        if (this.inspectorViewer) {
+          const isVisible = this.inspectorViewer.wireframeMeshes.some(w => w.visible);
+          this.inspectorViewer.wireframeMeshes.forEach(w => w.visible = !isVisible);
+          this.inspectorViewer.constellationPoints.forEach(p => p.visible = !isVisible);
+          btnWire.classList.toggle('active', !isVisible);
+        }
+      });
+    }
+
+    // Leader Lines HUD Callouts Toggle
+    const btnLines = document.getElementById('btnToggleLeaderLines');
+    if (btnLines) {
+      btnLines.addEventListener('click', () => {
+        if (this.inspectorViewer) {
+          const isActive = this.inspectorViewer.toggleHudCallouts();
+          btnLines.classList.toggle('active', isActive);
+        }
+      });
+    }
+
+    // 360° Auto-Orbit Toggle
+    const btnOrbit = document.getElementById('btnToggleOrbit');
+    if (btnOrbit) {
+      btnOrbit.addEventListener('click', () => {
+        if (this.inspectorViewer) {
+          this.inspectorViewer.autoRotate = !this.inspectorViewer.autoRotate;
+          btnOrbit.classList.toggle('active', this.inspectorViewer.autoRotate);
+        }
+      });
+    }
+
+    // Reset View Camera
+    const btnReset = document.getElementById('btnResetEngineCam');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        if (this.inspectorViewer) this.inspectorViewer.highlightComponent('all');
+        document.querySelectorAll('.aw-comp-btn').forEach(b => b.classList.remove('active'));
+        const allBtn = document.querySelector('.aw-comp-btn[data-insp-comp="all"]');
+        if (allBtn) allBtn.classList.add('active');
+      });
+    }
+
+    // Sound Button inside Inspector Topbar
+    const btnInspSound = document.getElementById('btnInspSoundToggle');
+    if (btnInspSound && this.btnAudioToggle) {
+      btnInspSound.addEventListener('click', () => {
+        this.btnAudioToggle.click();
+        btnInspSound.textContent = this.audioEnabled ? "🔊 SOUND" : "🔇 MUTED";
+      });
+    }
+
+    // Component Focus Buttons
+    document.querySelectorAll('.aw-comp-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.aw-comp-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const comp = btn.getAttribute('data-insp-comp');
+        if (this.inspectorViewer) {
+          this.inspectorViewer.highlightComponent(comp);
+        }
+      });
+    });
   }
 
   // ==========================================================================
@@ -1027,8 +1152,9 @@ class DashboardController {
     const elThr = document.getElementById('inspThrottle');
     if (elThr) elThr.textContent = `${Math.round(telemetry.throttlePct)}%`;
 
+    const rpm = Math.round(telemetry.rpm || 0);
     const elRpm = document.getElementById('inspRpm');
-    if (elRpm) elRpm.textContent = `${Math.round(telemetry.rpm)} RPM`;
+    if (elRpm) elRpm.textContent = `${rpm} RPM`;
 
     const elPress = document.getElementById('inspPressure');
     if (elPress) {
@@ -1048,6 +1174,7 @@ class DashboardController {
     const elVib = document.getElementById('inspVib');
     if (elVib) elVib.textContent = `${telemetry.vibrationRmsG.toFixed(2)} g`;
 
+    const powerKw = rpm > 100 ? ((rpm / 5800) * 84.5 * (telemetry.throttlePct / 100)).toFixed(1) : '0.0';
     const elHeat = document.getElementById('inspHeatRejection');
     if (elHeat) elHeat.textContent = `${((telemetry.rpm / 5800) * 32.5 * (telemetry.throttlePct / 100)).toFixed(1)} kW`;
 
@@ -1058,6 +1185,124 @@ class DashboardController {
         elCyl.textContent = `${Math.round(telemetry.cht[i])}°C`;
         elCyl.style.color = telemetry.cht[i] > 165 ? "var(--accent-danger)" : telemetry.cht[i] > 140 ? "var(--accent-amber)" : "var(--accent-cyan)";
       }
+    }
+
+    // --- CYBER ANALYSING WINDOW REAL-TIME UPDATES ---
+    // 1. Radial Semicircular Arc Gauge (RPM / Throttle)
+    const arc = document.getElementById('awRadialArc');
+    const needle = document.getElementById('awRadialNeedle');
+    const rpmValEl = document.getElementById('awRpmVal');
+    const thrValEl = document.getElementById('awThrVal');
+    const powerValEl = document.getElementById('awPowerVal');
+    const tagStatusEl = document.getElementById('radialTagStatus');
+
+    const rpmRatio = Math.max(0, Math.min(1, rpm / 5800));
+    if (arc) {
+      // Arc length = 251.2
+      const offset = 251.2 * (1 - rpmRatio);
+      arc.style.strokeDashoffset = offset;
+    }
+    if (needle) {
+      // Arc spans from 180 deg (left) to 0 deg (right)
+      const angleRad = Math.PI - (rpmRatio * Math.PI);
+      const nx = 100 + Math.cos(angleRad) * 68;
+      const ny = 105 - Math.sin(angleRad) * 68;
+      needle.setAttribute('x2', nx.toFixed(1));
+      needle.setAttribute('y2', ny.toFixed(1));
+    }
+    if (rpmValEl) rpmValEl.textContent = rpm;
+    if (thrValEl) thrValEl.textContent = `${Math.round(telemetry.throttlePct)}%`;
+    if (powerValEl) powerValEl.textContent = `${powerKw} kW`;
+    if (tagStatusEl) {
+      tagStatusEl.textContent = telemetry.anomalyScore > 0.65 ? 'CRITICAL' : telemetry.anomalyScore > 0.35 ? 'ELEVATED' : 'NOMINAL';
+      tagStatusEl.className = telemetry.anomalyScore > 0.65 ? 'aw-card-tag' : telemetry.anomalyScore > 0.35 ? 'aw-card-tag amber' : 'aw-card-tag cyan';
+    }
+
+    // 2. Circular Health & Matrix
+    const healthPct = Math.round(Math.max(0, Math.min(100, (1 - (telemetry.anomalyScore || 0)) * 100)));
+    const healthNumEl = document.getElementById('awHealthPercent');
+    const healthCircEl = document.getElementById('awCircProgress');
+    const hbarHealthFill = document.getElementById('awHbarHealthFill');
+    const hbarHealthVal = document.getElementById('awHbarHealthVal');
+    const hbarVibFill = document.getElementById('awHbarVibFill');
+    const hbarVibVal = document.getElementById('awHbarVibVal');
+    const hbarHydFill = document.getElementById('awHbarHydFill');
+    const hbarHydVal = document.getElementById('awHbarHydVal');
+
+    if (healthNumEl) healthNumEl.textContent = healthPct;
+    if (healthCircEl) {
+      // Circumference = 2 * PI * 32 = ~201
+      healthCircEl.style.strokeDashoffset = 201 * (1 - healthPct / 100);
+      healthCircEl.style.stroke = healthPct < 70 ? '#ff3355' : healthPct < 88 ? '#ffaa00' : '#00f0ff';
+    }
+    if (hbarHealthFill) {
+      hbarHealthFill.style.width = `${healthPct}%`;
+      hbarHealthFill.className = healthPct < 70 ? 'aw-hbar-fill amber' : 'aw-hbar-fill cyan';
+    }
+    if (hbarHealthVal) hbarHealthVal.textContent = `${healthPct}%`;
+
+    const vibVal = (telemetry.vibrationRmsG || 0.1);
+    const vibPct = Math.min(100, Math.round((vibVal / 2.5) * 100));
+    if (hbarVibFill) {
+      hbarVibFill.style.width = `${vibPct}%`;
+      hbarVibFill.className = vibVal > 2.0 ? 'aw-hbar-fill amber' : 'aw-hbar-fill green';
+    }
+    if (hbarVibVal) hbarVibVal.textContent = `${vibVal.toFixed(2)} g`;
+
+    const oilPsi = Math.round(telemetry.oilPressurePsi || 0);
+    const oilPct = Math.min(100, Math.round((oilPsi / 60) * 100));
+    if (hbarHydFill) hbarHydFill.style.width = `${oilPct}%`;
+    if (hbarHydVal) hbarHydVal.textContent = `${oilPsi} psi`;
+
+    // 3. Spectrum Equalizer Bars
+    const sBars = document.querySelectorAll('#awSpectrumBars .aw-sbar');
+    if (sBars && sBars.length > 0) {
+      const now = performance.now() * 0.005;
+      const baseHarmonic = rpm > 100 ? (rpm / 5800) : 0.08;
+      sBars.forEach((bar, idx) => {
+        const flutter = Math.sin(now * 3.5 + idx * 1.3) * 0.12;
+        let barRatio = 0.2;
+        if (idx < 4) {
+          const cylTemp = (telemetry.cht && telemetry.cht[idx]) || 25;
+          barRatio = Math.min(0.96, Math.max(0.15, (cylTemp / 180) + flutter));
+        } else if (idx < 8) {
+          barRatio = Math.min(0.95, Math.max(0.12, baseHarmonic * 0.8 + flutter + (idx % 2 === 0 ? 0.2 : 0.05)));
+        } else {
+          const mapRatio = (((telemetry.mapKpa || 101) - 40) / 140);
+          barRatio = Math.min(0.95, Math.max(0.1, mapRatio + flutter * 0.5));
+        }
+        bar.style.height = `${Math.round(barRatio * 100)}%`;
+      });
+    }
+
+    // 4. Digital Twin Mini Waveform Sparkline
+    const sparkCvs = document.getElementById('hc_sparkCanvas');
+    if (sparkCvs && sparkCvs.getContext) {
+      const ctx = sparkCvs.getContext('2d');
+      const cw = sparkCvs.width;
+      const ch = sparkCvs.height;
+      ctx.clearRect(0, 0, cw, ch);
+
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, ch / 2);
+      ctx.lineTo(cw, ch / 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      const timeSec = performance.now() * 0.004;
+      const freq = rpm > 100 ? (rpm / 60) * 0.15 : 0.5;
+      const amp = rpm > 100 ? Math.min(ch * 0.4, 12) : 2;
+
+      for (let x = 0; x < cw; x++) {
+        const y = ch / 2 + Math.sin(x * 0.2 * freq + timeSec) * amp + (Math.random() - 0.5) * 1.5;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
     }
   }
 
